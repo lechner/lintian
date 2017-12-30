@@ -34,11 +34,15 @@ use Carp qw(confess);
 use Cwd();
 
 use File::Path qw(make_path);
+use File::Temp qw(tempdir);
 use Getopt::Long qw(GetOptions);
 use IO::Async::Channel;
 use IO::Async::Loop;
 use IO::Async::Routine;
 use List::MoreUtils qw(none any);
+
+use IO::Handle;
+use GnuPG::Interface;
 
 use constant SUITES => qw(scripts changes debs source tests);
 
@@ -150,6 +154,14 @@ if (-d "$TESTSET/helpers/bin") {
 # --- Display output immediately
 STDOUT->autoflush;
 
+my @SIGNINGKEYS;
+my $gnupg = GnuPG::Interface->new();
+$gnupg->options->homedir(File::Temp->newdir());
+$gnupg->options->quiet(1);
+$gnupg->options->batch(1);
+my $dummykeydir = "$TESTSET/data/upstream-keys";
+@SIGNINGKEYS = <$dummykeydir/*.key> if (-d $dummykeydir);
+
 # --- Exit status for the test suite driver
 
 # Exit codes:
@@ -194,6 +206,18 @@ if (!$tag) {
 find_tests_to_run();
 
 if (@TESTS) {
+
+    # import dummy keys
+    if (scalar @SIGNINGKEYS != 0) {
+        my $errfh = IO::Handle->new();
+        my $pid = $gnupg->import_keys(command_args => [ @SIGNINGKEYS ],
+            handles => GnuPG::Handles->new(stderr => $errfh));
+        my @error = <$errfh>;
+        print "GnuPG::Interface error: @error" if @error;
+        close $errfh;
+        waitpid $pid, 0;
+    }
+
     for (0..$JOBS-1) {
         create_child($IO_LOOP, \@TESTS)
           or last;
@@ -385,8 +409,31 @@ sub test_package {
                 $test_state->progress('pre_upstream hook');
                 runsystem("$origdir/pre_upstream", $targetdir);
             }
+            my $origfilename = "${pkg}_${orig_version}.orig.tar.gz";
             chdir_runcmd($rundir,
-                ['tar', 'czf', "${pkg}_${orig_version}.orig.tar.gz", $pkgdir]);
+                ['tar', 'czf', $origfilename, $pkgdir]);
+
+            if (scalar @SIGNINGKEYS != 0) {
+                my $origfh = IO::File->new("$rundir/$origfilename");
+                my $sigfh = IO::File->new(">$rundir/$origfilename.asc");
+                my $errfh = IO::Handle->new();
+                my $handles = GnuPG::Handles->new(
+                    stdin => $origfh, stdout => $sigfh, stderr => $errfh);
+                $handles->options('stdin')->{direct} = 1;
+                $handles->options('stdout')->{direct} = 1;
+
+                $gnupg->options->default_key('5D9652F84DAA552E');
+                $gnupg->options->armor(1);
+                my $pid = $gnupg->detach_sign(handles => $handles);
+                close $origfh;
+                close $sigfh;
+
+                my @error = <$errfh>;
+                close $errfh;
+                print "GnuPG::Interface error: @error" if @error;
+                waitpid $pid, 0;
+            }
+
             if (-f "$origdir/debian/debian/source/format") {
                 my $format
                   = slurp_entire_file("$origdir/debian/debian/source/format");
