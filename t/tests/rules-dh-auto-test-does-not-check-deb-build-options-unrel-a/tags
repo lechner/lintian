@@ -1,0 +1,1 @@
+W: rules-dh-auto-test-does-not-check-deb-build-options-unrel-a: package-has-long-file-name 73 (82) > 80
