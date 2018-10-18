@@ -1,5 +1,6 @@
 Testname: rules-sets-dpkg-architecture-variable
 Version: 1.0
+Package-Architecture: all
 Description: Test for unnecessary dpkg-architecture assignments
 Test-For:
  debian-rules-sets-dpkg-architecture-variable

@@ -1,5 +1,6 @@
 Testname: systemd-general
 Version: 1.0
+Package-Architecture: all
 Description: General systemd tests
 Test-Against:
  omitted-systemd-service-for-init.d-script

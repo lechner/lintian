@@ -1,5 +1,6 @@
 Testname: binaries-misplaced
 Version: 1.0
+Package-Architecture: all
 Description: Test binaries in /etc
 Test-For:
  arch-independent-package-contains-binary-or-object
