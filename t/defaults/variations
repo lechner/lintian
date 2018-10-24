@@ -1,0 +1,2 @@
+Package-Architecture: all any host
+Package-Format: native(1.0) native(3.0) non-native(1.0) quilt(3.0)
