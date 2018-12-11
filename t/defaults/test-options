@@ -1,0 +1,9 @@
+Skeleton: default
+Runner: generic.t
+Builder: builder
+Sequence: 6000
+Profile: debian
+Options: -I -E
+Output-Format: EWI
+Sort: yes
+Todo: no
