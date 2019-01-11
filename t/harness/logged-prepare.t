@@ -66,57 +66,59 @@ $runpath->mkpath;
 logged_prepare($specpath->stringify, $runpath->stringify, 'tests', 't');
 
 # read resulting test description
-my $testcase = read_config($runpath->child('desc')->stringify);
+my $constraints = read_config($runpath->child('constraints')->stringify);
+my $options = read_config($runpath->child('test-options')->stringify);
+my $fill = read_config($runpath->child('template-fill')->stringify);
 
-my @testarches = split(/\s+/, $testcase->{'test_architectures'});
+my @testarches = split(/\s+/, $constraints->{'test_architectures'});
 
 # test plan
 plan tests => 26 + scalar @testarches;
 
-is($testcase->{testname}, $TESTNAME, 'Correct name');
+is($fill->{testname}, $TESTNAME, 'Correct name');
 
-is($testcase->{version}, '1.0-2', 'Correct version');
-is($testcase->{'upstream_version'}, '1.0', 'Correct upstream version');
+is($fill->{version}, '1.0-2', 'Correct version');
+is($fill->{'upstream_version'}, '1.0', 'Correct upstream version');
 
-is($testcase->{'test_architectures'}, 'any-amd64 any-i386', 'Correct test architectures');
-isnt($testcase->{'test_architectures'}, 'any', 'Correct test architectures');
+is($constraints->{'test_architectures'}, 'any-amd64 any-i386', 'Correct test architectures');
+isnt($constraints->{'test_architectures'}, 'any', 'Correct test architectures');
 foreach my $testarch (@testarches) {
   my @known = qx{dpkg-architecture --list-known --match-wildcard $testarch};
   cmp_ok(scalar @known, '>', 1, "Known test architecture $testarch");
 }
 
-is($testcase->{host_architecture}, $ENV{'DEB_HOST_ARCH'}, 'Correct host architecture');
-isnt($testcase->{host_architecture}, $testcase->{'test-architectures'}, 'Test and host architectures are different');
+is($fill->{host_architecture}, $ENV{'DEB_HOST_ARCH'}, 'Correct host architecture');
+isnt($fill->{host_architecture}, $constraints->{'test-architectures'}, 'Test and host architectures are different');
 
-is($testcase->{package_architecture}, 'any', 'Changed package architecture');
-isnt($testcase->{package_architecture}, 'all', 'Not the default package architecture');
+is($fill->{package_architecture}, 'any', 'Changed package architecture');
+isnt($fill->{package_architecture}, 'all', 'Not the default package architecture');
 
-is($testcase->{skeleton}, 'default', 'Default skeleton');
-isnt($testcase->{skeleton}, 'pedantic', 'Not the pedantic skeleton');
+is($options->{skeleton}, 'default', 'Default skeleton');
+isnt($options->{skeleton}, 'pedantic', 'Not the pedantic skeleton');
 
-is($testcase->{'test_depends'}, 'debhelper (>= 9.20151004~)', 'Correct test dependencies');
+is($fill->{'test_depends'}, 'debhelper (>= 9.20151004~)', 'Correct test dependencies');
 
-is($testcase->{'test_for'}, 'shlib-with-non-pic-code', 'Correct Test-For');
-is($testcase->{'test_against'}, undef, 'Correct Test-Against');
+is($options->{'test_for'}, 'shlib-with-non-pic-code', 'Correct Test-For');
+is($options->{'test_against'}, '', 'Correct Test-Against');
 
-is($testcase->{'standards_version'}, $ENV{'POLICY_VERSION'}, 'Correct policy version');
+is($fill->{'standards_version'}, $ENV{'POLICY_VERSION'}, 'Correct policy version');
 
-is($testcase->{date}, rfc822date(max(stat($descpath)->mtime, $ENV{'POLICY_EPOCH'})), 'Correct policy date');
+is($fill->{date}, rfc822date(max(stat($descpath)->mtime, $ENV{'POLICY_EPOCH'})), 'Correct policy date');
 
-is($testcase->{sort}, 'yes', 'Sort boolean was not converted from string');
+is($options->{sort}, 'yes', 'Sort boolean was not converted from string');
 
-is($testcase->{todo}, 'no', 'Todo disabled');
+is($options->{todo}, 'no', 'Todo disabled');
 
-is($testcase->{type}, 'native', 'Test is native');
-isnt($testcase->{type}, 'yes', 'Native type not yes.');
+is($fill->{type}, 'native', 'Test is native');
+isnt($fill->{type}, 'yes', 'Native type not yes.');
 
-is($testcase->{'output_format'}, 'EWI', 'Output format is EWI');
+is($options->{'output_format'}, 'EWI', 'Output format is EWI');
 
-is($testcase->{options}, '-I -E', 'Correct lintian options');
+is($options->{options}, '-I -E', 'Correct lintian options');
 
-is($testcase->{'dh_compat_level'}, $ENV{'DEFAULT_DEBHELPER_COMPAT'}, 'Default debhelper compat level');
+is($fill->{'dh_compat_level'}, $ENV{'DEFAULT_DEBHELPER_COMPAT'}, 'Default debhelper compat level');
 
-is($testcase->{description}, 'Test checks related to non-pic code', 'Correct description');
-isnt($testcase->{description}, 'No Description Available', 'Not default description');
+is($fill->{description}, 'Test checks related to non-pic code', 'Correct description');
+isnt($fill->{description}, 'No Description Available', 'Not default description');
 
-is($testcase->{author}, 'Debian Lintian Maintainers <lintian-maint@debian.org>', 'Default author');
+is($fill->{author}, 'Debian Lintian Maintainers <lintian-maint@debian.org>', 'Default author');

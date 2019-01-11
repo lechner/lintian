@@ -87,14 +87,14 @@ my $match = $testpath->child('tags.match');
 $match->spew($expected->slurp);
 
 # read test defaults
-my $defaultspath = "t/defaults/desc";
+my $defaultspath = "t/defaults/test-options";
 my $testcase = read_config($defaultspath);
 
 # test plan
 plan tests => 2;
 
 # check when tags match
-ok(!scalar check_result($testcase, $match, $expected, $expected), 'Same tags match');
+ok(check_result($testcase, $match, $expected, $expected), 'Same tags match');
 
 # check tags do not match
-ok(scalar check_result($testcase, $nomatch, $expected, $expected), 'Different tags do not match');
+ok(!check_result($testcase, $nomatch, $expected, $expected), 'Different tags do not match');
