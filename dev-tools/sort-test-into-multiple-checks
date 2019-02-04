@@ -1,0 +1,381 @@
+#!/usr/bin/perl
+
+# Copyright © 1998 Richard Braakman
+# Copyright © 2008 Frank Lichtenheld
+# Copyright © 2008, 2009 Russ Allbery
+# Copyright © 2014 Niels Thykier
+# Copyright © 2018 Felix Lechner
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, you can find it on the World Wide
+# Web at http://www.gnu.org/copyleft/gpl.html, or write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+# MA 02110-1301, USA.
+
+# The harness for Lintian's test suite.  For detailed information on
+# the test suite layout and naming conventions, see t/tests/README.
+# For more information about running tests, see
+# doc/tutorial/Lintian/Tutorial/TestSuite.pod
+#
+
+use strict;
+use warnings;
+use autodie;
+use v5.10;
+
+use Carp;
+use Cwd;
+use File::Basename;
+use File::Find::Rule;
+use File::Spec::Functions qw(abs2rel rel2abs splitpath splitdir catpath);
+use File::stat;
+use Getopt::Long;
+use List::Compare;
+use List::Util qw(all max uniq);
+use Path::Tiny;
+use Text::CSV;
+
+use Lintian::Deb822Parser qw(read_dpkg_control);
+use Lintian::Profile;
+
+BEGIN {
+    # whitelist the environment we permit to avoid things that mess up
+    # tests, like CFLAGS, DH_OPTIONS, DH_COMPAT, DEB_HOST_ARCH
+    my %WHITELIST = map { $_ => 1 } qw(
+      LINTIAN_TEST_INSTALLED
+      NO_PKG_MANGLE
+      PATH
+      TMPDIR
+    );
+
+    # TODO: MAKEFLAGS - some of the tests don't cope too well with it
+    for my $var (keys %ENV) {
+        delete $ENV{$var} unless exists $WHITELIST{$var};
+    }
+
+    # Ubuntu auto-builders run pkg-mangle which messes up test packages
+    $ENV{'NO_PKG_MANGLE'} = 'true'
+      unless exists($ENV{'NO_PKG_MANGLE'});
+
+    $ENV{'LINTIAN_TEST_INSTALLED'} = 'no'
+      unless exists $ENV{'LINTIAN_TEST_INSTALLED'};
+
+    my $cwd = Cwd::getcwd();
+
+    if ($ENV{'LINTIAN_TEST_INSTALLED'} eq 'yes') {
+        $ENV{'LINTIAN_ROOT'} = '/usr/share/lintian';
+        $ENV{'LINTIAN_FRONTEND'} = '/usr/bin/lintian';
+    } else {
+        $ENV{'LINTIAN_ROOT'} = $cwd;
+        $ENV{'LINTIAN_FRONTEND'} = "$cwd/frontend/lintian";
+    }
+
+    $ENV{'LINTIAN_DPLINT_FRONTEND'}= "$ENV{'LINTIAN_ROOT'}/frontend/dplint";
+
+    $ENV{'LINTIAN_TEST_ROOT'} = $cwd;
+}
+
+use lib "$ENV{'LINTIAN_TEST_ROOT'}/lib";
+
+use constant SPACE => q{ };
+use constant INDENT => q{    };
+use constant NEWLINE => qq{\n};
+use constant EMPTY => q{};
+use constant YES => q{yes};
+use constant NO => q{no};
+
+my @testpaths = find_all_testpaths('t/tags/source');
+
+say scalar @testpaths . " Tests";
+
+my $forcount = 0;
+my $againstcount = 0;
+my $havefor = 0;
+my $haveagainst = 0;
+
+my @totalchecks;
+
+my $profile = Lintian::Profile->new(undef, [$ENV{LINTIAN_ROOT}]);
+
+my $csv = Text::CSV->new({ sep_char => '|' });
+
+my $moved;
+
+my %count;
+my %names;
+
+foreach my $testpath (@testpaths) {
+
+    my $descpath = "$testpath/desc";
+
+#    my $text = path($descpath)->slurp_utf8;
+#    $text =~ s/\nTest-For:[^\n]*\n(?: [^\n]*\n)*/\n/;
+#    path($descpath)->spew_utf8($text);
+
+    my $testcase = read_config($descpath);
+    my @checks = uniq split(SPACE, $testcase->{check}//EMPTY);
+
+    my $num = scalar @checks;
+
+    if($num == 1) {
+
+      my @test_against = uniq split(SPACE,  $testcase->{test_against}//EMPTY);
+#      say "Found Test-Against in $testpath";
+
+      for my $i (0..$num-1) {
+        my $check = $checks[$i];
+        my $dest = "t/tags/checks/$check";
+        path($dest)->mkpath unless -e $dest;
+
+        if($i < $num -1) {
+          die "Cannot copy $testpath to $check"
+            if system("cp -r $testpath $dest/");
+        } else {
+          die "Cannot git mv $testpath to $check"
+            if system("git mv $testpath $dest/");
+        }
+
+        my $newspec = "$dest/$testcase->{testname}/desc";
+        my $text = path($newspec)->slurp_utf8;
+        $text =~ s/\nCheck:\s*\n(\s+[^\n]*\n)*/\nCheck: $check\n/;
+
+        if (scalar @test_against) {
+
+          my $checkscript = $profile->get_script($check);
+          die "Unknown Lintian check $check"
+            unless defined $checkscript;
+          my @relevant = $checkscript->tags;
+
+          my @applicable = List::Compare->new(\@relevant, \@test_against)->get_intersection;
+ #         say "Intersection tag: $_" for @applicable;
+
+          my $newtext = "Test-Against:";
+          $newtext .= "\n"
+            unless scalar @applicable == 1;
+
+          $newtext .= " $_\n"
+            for @applicable;
+
+          $text =~ s/\nTest-Against:[^\n]*\n([ ]+[^\n]+\n)*/\n$newtext/;
+        }
+        path($newspec)->spew_utf8($text);
+      }
+
+    }
+
+    $count{$num} += 1;
+    $names{$num} = () unless exists $names{$num};
+    push(@{$names{$num}}, $testpath);
+
+    # my @for = uniq split(SPACE, $testcase->{test_for}//EMPTY);
+
+    # next
+    #   if (scalar @checks == 0);
+
+    # my %tags;
+
+    # foreach my $check (@checks) {
+    #     my $checkscript = $profile->get_script($check);
+    #     die "Unknown Lintian check $check"
+    #       unless defined $checkscript;
+
+    #     for my $name ($checkscript->tags) {
+    #       $tags{$name} = 1;
+    #     }
+    # }
+
+    # # read tags from specification
+    # my $temp = Path::Tiny->tempfile;
+    # die "tagextract failed: $!"
+    #   if system('t/bin/tagextract', '-f', 'EWI', "$testpath/tags",
+    #     $temp->stringify);
+    # my @lines = $temp->lines_utf8({ chomp => 1 });
+
+    # my $csv = Text::CSV->new({ sep_char => '|' });
+
+    # my %expected;
+    # foreach my $line (@lines) {
+
+    #     my $status = $csv->parse($line);
+    #     die "Cannot parse line $line: " . $csv->error_diag
+    #       unless $status;
+
+    #     my ($type, $package, $name, $details) = $csv->fields;
+
+    #     die "Cannot parse line $line"
+    #       unless all { length } ($type, $package, $name);
+
+    #     $expected{$name} = 1;
+    # }
+
+    # # calculate Test-For
+    # my %test_for;
+
+    # foreach my $name (keys %expected) {
+    #   $test_for{$name} = 1
+    #     if exists $tags{$name}
+    # }
+
+  # say EMPTY;
+  # say '--- tags in checks---';
+  # say for sort keys %tags;
+  # say EMPTY;
+  # say '--- expected tags ---';
+  # say for sort keys %expected;
+  # say EMPTY;
+  # say '--- calculated Test-For ---';
+  # say for sort keys %test_for;
+  # say EMPTY;
+  # say '--- actual Test-For ---';
+  # say for sort @for;
+  # say EMPTY;
+  
+    # for my $name (@for) {
+    #   die "$testpath: Tag $name listed in Test-For but not expected"
+    #     unless exists $test_for{$name}
+    # }
+
+    #    my @against = split(SPACE, $testcase->{test_against}//EMPTY);
+#    my @desctags = (@for, @against);
+
+#    $havefor += 1 if exists $testcase->{test_for};
+#    $haveagainst += 1 if exists $testcase->{test_against};
+
+#    my $text = path($descpath)->slurp_utf8;
+#    path($descpath)->append_utf8(NEWLINE)
+#      unless $text =~ qr/\n$/;
+
+    # my $text = path($descpath)->slurp_utf8;
+    # my $corrected = $text;
+    # $corrected =~ s/(\s)+$/\n/;
+    # path($descpath)->spew_utf8($corrected)
+    #   unless $text eq $corrected;
+
+#    path($descpath)->append("Test-Against:" . NEWLINE)
+#      if exists $testcase->{test_for} && ! exists $testcase->{test_against};
+
+#    say "No Test-Against in $testpath"
+#      unless exists $testcase->{test_against};
+
+#    $forcount += scalar @for;
+#    $againstcount += scalar @against;
+#    $count += scalar @desctags;
+
+#    my @checks;
+#    foreach my $desctag (@desctags) {
+
+#        next if $desctag eq 'lintian-easter-egg';
+
+#        my $taginfo = $profile->get_tag($desctag);
+#        die "Unknown tag $desctag" unless $taginfo;
+
+#        my $check = $taginfo->script;
+#        push(@checks, $check);
+#    }
+
+#    push(@totalchecks, @checks);
+
+    #   say "No checks defined for $testpath"
+    # }
+    # elsif (scalar @checks == 1) {
+    #   path($descpath)->append_utf8("Check: " . $checks[0] . NEWLINE);
+    # }
+    # else {
+    #   my $entry = SPACE . join(NEWLINE . SPACE, @checks) . NEWLINE;
+    #   path($descpath)->append_utf8("Check:" . NEWLINE);
+    #   path($descpath)->append_utf8($entry);
+    # }
+
+    # tags-for is the intersection
+
+}
+
+# @totalchecks = uniq @totalchecks;
+
+# say "$havefor have Test-For";
+# say "$haveagainst have Test-Against";
+# say "$count Tag definitions";
+# say "$forcount Tags in Test-For";
+# say "$againstcount Tags in Test-Against";
+# say scalar @totalchecks . ' Checks';
+
+#say for sort @totalchecks;
+
+say "$count{$_} test have $_ checks." for sort keys %count;
+
+my @files = File::Find::Rule->file()->name('*.count')->maxdepth(1)->in('.');
+unlink(@files);
+
+for my $num (keys %names) {
+  path("$num.count")->spew(join(NEWLINE, @{$names{$num}}).NEWLINE);
+}
+
+exit;
+
+
+sub find_all_testpaths {
+    my ($directory) = @_;
+    my @descfiles = File::Find::Rule->file()->name('desc')->in($directory);
+
+    my @testpaths;
+    foreach my $descfile (@descfiles) {
+        my ($volume, $directories, $file) = splitpath($descfile);
+        croak('Filename should be desc') unless $file eq 'desc';
+        push(@testpaths, catpath($volume, $directories, EMPTY));
+    }
+    return @testpaths;
+}
+
+sub find_all_tags {
+    my ($desc) = @_;
+
+    my $tagnames = $desc->{test_for}//'';
+    $tagnames .= ' ' . $desc->{test_against}
+      if $desc->{test_against};
+
+    return split(SPACE, $tagnames);
+}
+
+sub read_config {
+    my ($configpath, $hashref) = @_;
+
+    croak "Cannot find file $configpath."
+      unless -f $configpath;
+
+    my @paragraphs = read_dpkg_control($configpath);
+    croak "$configpath does not have exactly one paragraph"
+      if (scalar(@paragraphs) != 1);
+
+    my $config;
+
+    # use existing hash ref if supplied
+    $config = $hashref if defined $hashref;
+
+    # insert values into our hash ref
+    foreach my $key (keys %{$paragraphs[0]}) {
+        my $underscored = $key;
+        $underscored =~ s/-/_/g;
+        $config->{$underscored} = $paragraphs[0]->{$key};
+
+        # unwrap continuation lines
+        $config->{$underscored} =~ s/\n/ /g;
+
+        # trim both ends
+        $config->{$underscored} =~ s/^\s+|\s+$//g;
+
+        # reduce multiple spaces to one
+        $config->{$underscored} =~ s/\s+/ /g;
+    }
+
+    return $config;
+}
