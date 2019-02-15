@@ -1,0 +1,7 @@
+Testname: old-python-version-field
+Skeleton: upload-native
+Section: python
+Version: 1.0
+Description: Test for field referring to Python3 version in stable
+Test-Against:
+Check: python
