@@ -1,0 +1,6 @@
+#!/usr/bin/make -f
+%:
+	dh $@
+
+clean:
+	@echo 'Do nothing'

@@ -1,0 +1,6 @@
+Testname: debian-files-list-in-source
+Skeleton: upload-native
+Version: 1.0
+Description: Test with debian/files in source package
+Test-Against:
+Check: cruft

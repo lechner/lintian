@@ -1,0 +1,6 @@
+Testname: tar-errors-from-control
+Skeleton: deb
+Version: 1.0
+Description: Test package emitting errors from tar for control
+Test-Against:
+Check: deb-format
