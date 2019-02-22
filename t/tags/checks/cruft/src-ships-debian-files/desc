@@ -1,0 +1,5 @@
+Testname: src-ships-debian-files
+Version: 1.0
+Description: Test with upload that ships debian/files in source
+Test-Against:
+Check: cruft
