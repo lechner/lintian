@@ -25,8 +25,8 @@ use v5.16;
 
 use parent 'Class::Accessor::Fast';
 
+use IO::Async::Function;
 use IO::Async::Loop;
-use IO::Async::Routine;
 use List::Compare;
 use List::MoreUtils qw(uniq);
 use POSIX qw(SIGTERM SIGKILL);
@@ -125,14 +125,14 @@ changed with the L</jobs> method later.  If omitted, it defaults to
 =cut
 
 sub new {
-    my ($class, $collmap, $options) = @_;
+    my ($class, $depmap, $options) = @_;
 
     $options //= {};
     my %extra = %{ $options->{'extra-coll'} // {} };
     my $profile = $options->{'profile'};
     my $jobs = $options->{'jobs'} // 0;
 
-    my $clonedmap = $collmap->clone;
+    my $clonedmap = $depmap->clone;
 
     if ($profile) {
         my @requested;
@@ -142,8 +142,8 @@ sub new {
         }
         push(@requested, keys %extra);
 
-        # For new entries we take everything in the collmap, which is
-        # a bit too much in some cases.  Since we have cloned collmap,
+        # For new entries we take everything in the depmap, which is
+        # a bit too much in some cases.  Since we have cloned depmap,
         # we might as well prune the nodes we will not need in our
         # copy.  While not perfect, it reduces the unnecessary work
         # rather well.
@@ -160,7 +160,7 @@ sub new {
         $clonedmap->unlink($_)for $lc->get_Lonly;
 
         # clonedmap should remain internally consistent
-        die 'Inconsistent collmap after deletion'
+        die 'Inconsistent depmap after deletion'
           if $clonedmap->missing;
     }
 
@@ -169,9 +169,9 @@ sub new {
 
     my $self = {
         'cache' => {},
-        'coll-priorities' => undef,
-        'coll2priority' => {},
-        'collmap' => $clonedmap,
+        'prioritized' => undef,
+        'priority_map' => {},
+        'depmap' => $clonedmap,
         'extra-coll' => \%extra,
         'jobs' => $jobs,
         'profile' => $profile,
@@ -219,7 +219,7 @@ or manually.
 sub prepare_tasks {
     my ($self, $errorhandler, @labentries) = @_;
 
-    my %worklists;
+    my %worktable;
     foreach my $labentry (@labentries) {
         my $new;
 
@@ -229,30 +229,33 @@ sub prepare_tasks {
             next;
         }
 
-        my $pkg_type = $labentry->pkg_type;
+        my $type = $labentry->pkg_type;
         my $cmap;
 
-        if (exists $self->{'cache'}{$pkg_type}) {
-            $cmap = $self->{'cache'}{$pkg_type}->clone;
+        if (exists $self->{'cache'}{$type}) {
+            $cmap = $self->{'cache'}{$type}->clone;
         } else {
-            my $collmap = $self->{'collmap'};
-            my $cmap2 = Lintian::DepMap::Properties->new;
-            my $cond = { 'type' => $pkg_type };
-            my $coll2priority = $self->{'coll2priority'};
+            my $depmap = $self->{'depmap'};
+            my $newdepmap = Lintian::DepMap::Properties->new;
 
-            foreach my $node ($collmap->known) {
-                my $script = $collmap->getp($node);
-                if (not exists($coll2priority->{$node})) {
-                    $coll2priority->{$node} = $script->priority;
-                    $self->{'coll-priorities'} = undef;
+            my $priority_map = $self->{'priority_map'};
+
+            foreach my $name ($depmap->known) {
+
+                my $script = $depmap->getp($name);
+                my @needs_info = $script->needs_info({ 'type' => $type });
+                $newdepmap->add($name, @needs_info, $script);
+
+                unless (exists $priority_map->{$name}) {
+                    $priority_map->{$name} = $script->priority;
+                    $self->{'prioritized'} = undef;
                 }
-                $cmap2->add($node, $script->needs_info($cond), $script);
             }
 
-            $cmap2->initialise;
+            $newdepmap->initialise;
 
-            $self->{'cache'}{$pkg_type} = $cmap2;
-            $cmap = $cmap2->clone;
+            $self->{'cache'}{$type} = $newdepmap;
+            $cmap = $newdepmap->clone;
         }
 
         my $needed;
@@ -264,7 +267,7 @@ sub prepare_tasks {
                 foreach my $name ($profile->scripts) {
                     my $check = $profile->get_script($name);
                     push(@requested, $check->needs_info)
-                      if $check->is_check_type($pkg_type);
+                      if $check->is_check_type($type);
                 }
                 my $extra = $self->{'extra-coll'};
                 push(@requested, keys %$extra)
@@ -280,7 +283,8 @@ sub prepare_tasks {
                 # Skip collections not relevant to us (they will never
                 # be finished and we do not want to use their
                 # dependencies if they are the only ones using them)
-                next unless $script->is_type($pkg_type);
+                next unless $script->is_type($type);
+                next if $labentry->is_coll_finished($name, $script->version);
                 $wanted{$name} = 1;
                 push @requested, $script->needs_info;
             }
@@ -300,19 +304,22 @@ sub prepare_tasks {
 
         next unless $cmap; # nothing to do
 
-        $worklists{$labentry->identifier} = {
-            'collmap' => $cmap,
+        $worktable{$labentry->identifier} = {
+            'depmap' => $cmap,
             'lab-entry' => $labentry,
             'needed' => $needed,
         };
     }
-    return unless %worklists;
-    $self->{'worktable'} = \%worklists;
-    if (not $self->{'coll-priorities'}) {
-        my $coll2priority = $self->{'coll2priority'};
-        my @priorities = sort { $coll2priority->{$a} <=> $coll2priority->{$b} }
-          keys(%{$coll2priority});
-        $self->{'coll-priorities'} = \@priorities;
+
+    return unless %worktable;
+
+    $self->{'worktable'} = \%worktable;
+
+    unless ($self->{'prioritized'}) {
+        my $priority_map = $self->{'priority_map'};
+        my @prioritized = sort { $priority_map->{$a} <=> $priority_map->{$b} }
+          keys(%{$priority_map});
+        $self->{'prioritized'} = \@prioritized;
     }
     return 1;
 }
@@ -351,183 +358,165 @@ defined for other events.
 
 sub process_tasks {
     my ($self, $hooks) = @_;
-    my $worklists = $self->{'worktable'};
+    my $worktable = $self->{'worktable'};
     my $running_jobs = $self->{'running-jobs'};
-    my $colls = $self->{'collmap'};
+    my $depmap = $self->{'depmap'};
     my $jobs = $self->jobs;
 
-    my $loop = IO::Async::Loop->new;
+    $hooks //= {};
+    my $hook = $hooks->{'coll-hook'};
 
-    my %failed;
     my $debug_enabled = $Lintian::Output::GLOBAL->debug;
-    my %active = map { $_ => 1 } keys %$worklists;
 
-    my (@queue);
-    my @coll_priorities = @{$self->{'coll-priorities'}};
-    my %colls_not_scheduled;
+    my @prioritized = @{$self->{'prioritized'}};
 
-    for my $coll (@coll_priorities) {
-        my %procs;
-        for my $labid (keys(%{$worklists})) {
-            $procs{$labid} = 1;
-        }
-        $colls_not_scheduled{$coll} = \%procs;
-    }
+    my @super;
 
-    while(1) {
+    for my $name (@prioritized) {
+        my $script = $depmap->getp($name);
 
-        unless (@queue) {
-            for (my $i = 0; $i < @coll_priorities ; $i++) {
-                my $coll = $coll_priorities[$i];
-                my $cs = $colls->getp($coll);
-                my $procs = $colls_not_scheduled{$coll};
-                foreach my $labid (grep { $procs->{$_} } keys %active) {
-                    my $wlist = $worklists->{$labid};
-                    my $cmap = $wlist->{'collmap'};
-                    next if not $cmap->selectable($coll);
-                    my $labentry = $wlist->{'lab-entry'};
-                    my $needed = $wlist->{'needed'};
-                    my $pkg_type = $labentry->pkg_type;
-                    delete($procs->{$labid});
-                    # current type?
-                    if (not $cs->is_type($pkg_type)) {
-                        $cmap->satisfy($coll);
-                        next;
-                    }
+        my @queue;
 
-                    # Check if its actually on our TODO list.
-                    if (defined $needed and not exists $needed->{$coll}) {
-                        $cmap->satisfy($coll);
-                        next;
-                    }
+        foreach my $labid (keys %$worktable) {
 
-                    # collect info
-                    $cmap->select($coll);
-                    $wlist->{'changed'} = 1;
-                    debug_msg(3, "READY ${coll}-${labid}") if $debug_enabled;
-                    my $task = Lintian::Unpack::Task->new;
-                    $task->id("${coll}-${labid}");
-                    $task->script($cs);
-                    $task->labentry($labentry);
-                    $task->cmap($cmap);
-                    push(@queue, $task);
-               # If we are dealing with the highest priority type of task, then
-               # keep filling the cache (i.e. $i == 0).  Otherwise, stop here
-               # to avoid priority inversion due to filling the queue with
-               # unimportant tasks.
-                    last if $i;
-                }
-                if (not keys(%{$procs})) {
-                    debug_msg(3,
-                        "DISCARD $coll (all instances have been scheduled)")
-                      if $debug_enabled;
-                    splice(@coll_priorities, $i, 1);
-                    $i--;
-                }
-                last if @queue;
-            }
+            my $task = Lintian::Unpack::Task->new;
+            my $worklist = $worktable->{$labid};
+
+            $task->id("$name-$labid");
+            $task->script($script);
+            $task->labentry($worklist->{'lab-entry'});
+            $task->worklist($worklist);
+            $task->cmap($worklist->{'depmap'});
+            push(@queue, $task);
         }
 
         if (@queue) {
-            debug_msg(4,
-                    'QUEUE non-empty queue with '
-                  . scalar(@queue)
-                  . ' item(s).  Taking one.')
-              if $debug_enabled;
+            my @temp = @queue;
+            push(@super, \@temp);
+            @queue = ();
         }
+    }
 
-        last
-          unless @queue;
+    my $loop = IO::Async::Loop->new;
 
-        my $task = shift @queue;
-        my $id = $task->id;
-        my $script = $task->script;
-        my $labentry = $task->labentry;
-        my $cmap = $task->cmap;
+    for my $queue (@super) {
+        for my $task (@{$queue}) {
 
-        my $labid = $labentry->identifier;
-        debug_msg(3, "START $id");
-        my $future = $loop->new_future;
+            my $id = $task->id;
+            my $script = $task->script;
+            my $labentry = $task->labentry;
+            my $cmap = $task->cmap;
+            my $worklist = $task->worklist;
 
-        $hooks //= {};
-        my $hook = $hooks->{'coll-hook'};
+            my $name = $script->name;
 
-        $hook->($labentry, 'start', $script, $id)
-          if $hook;
+            next
+              unless $cmap->selectable($name);
 
-        my $routine = IO::Async::Routine->new(
-            code  => sub {
+            my $type = $labentry->pkg_type;
 
-                undef($IO::Async::Loop::ONE_TRUE_LOOP);
+            # current type?
+            unless ($script->is_type($type)) {
+                $cmap->satisfy($name);
+                next;
+            }
 
-                my $name = $script->name;
-                my $package = $labentry->pkg_name;
-                my $type = $labentry->pkg_type;
-                my $basedir = $labentry->base_dir;
+            # check if it has been run previously
+            if ($labentry->is_coll_finished($name, $script->version)) {
+                $cmap->satisfy($name);
+                next;
+            }
 
-                # change the process name; possible overwritten by exec
-                $0 = "$name (processing $labid)";
+            # Check if its actually on our TODO list.
+            my $needed = $worklist->{'needed'};
+            if (defined $needed && !exists $needed->{$name}) {
+                $cmap->satisfy($name);
+                next;
+            }
 
-                # Path::Tiny blocks sometimes; perhaps the scheduling conflicts
-                $ENV{PERL_PATH_TINY_NO_FLOCK} = 1;
+            # Not run before (or out of date)
+            $labentry->_clear_coll_status($name);
 
-                $script->collect($package, $type, $basedir);
+            # collect info
+            $cmap->select($name);
 
-                return 0;
-            },
+            my $labid = $labentry->identifier;
+            debug_msg(3, "START $id");
 
-            on_return  => sub {
-                my ($self, $status) = @_;
+            $hook->($labentry, 'start', $script, $id)
+              if $hook;
 
-                delete $running_jobs->{$future};
+            my $future = $loop->new_future;
+            my $process = $loop->open_process(
+                code  => sub {
+                    my $name = $script->name;
 
-                debug_msg(3, "FINISH $id ($status)");
+                    my $package = $labentry->pkg_name;
+                    my $type = $labentry->pkg_type;
+                    my $basedir = $labentry->base_dir;
+                    my $labid = $labentry->identifier;
 
-                $hook->($labentry, 'finish', $script, $id, $status)
-                  if $hook;
+                    $0 = "$name (processing $labid)"
+                      unless $script->interface eq 'exec';
 
-                my $name = $script->name;
+                    my $status = $task->run;
 
-                if ($status) {
-                    # failed ...
-                    $failed{$labid} = 1;
-                    delete $active{$labid};
-                }else {
+                    return $status;
+                },
+
+                on_finish  => sub {
+                    my ($self, $exitcode) = @_;
+                    my $status = ($exitcode >> 8);
+
+                    if ($status) {
+                        # failed ...
+                        $future->fail(
+                            "Process $id failed with status $status");
+                    }
+
                     # The collection was success
-                    $cmap->satisfy($name);
-                    # If the entry is marked as failed, don't break the loop
-                    # for it.
-                    $active{$labid} = 1
-                      unless $failed{$labid} || !$cmap->selectable;
-                }
+                    $future->done("Process $id finished");
+                },
 
-                $future->done("Script $name for $labid finished");
+                on_exception  => sub {
+                    my ($self, $exception, $errno, $exitcode) = @_;
+                    my $message;
 
-                if ($debug_enabled) {
-                    my @ids = map { $_->{id} } values %{$running_jobs};
-                    my $queue = join(', ', sort @ids);
-                    debug_msg(3, "RUNNING QUEUE: $queue");
-                }
-            },
+                    if (length $exception) {
+                        $message
+                          = "Process $id died with exception $exception (errno $errno)";
 
-            on_die  => sub {
-                my ($self, $exception) = @_;
+                    } elsif((my $status = W_EXITSTATUS($exitcode)) == 255) {
+                        $message = "Process $id failed to exec() - $errno";
+                    }else {
+                        $message
+                          = "Process $id exited with exit status $status";
+                    }
 
-                my $name = $script->name;
+                    $future->fail($message);
+                });
 
-                my $message
-                  = "Collection script $name for $labid died: $exception";
-                $future->fail($message);
-            });
+            $running_jobs->{$future} = $id;
 
-        $loop->add($routine);
+            $loop->await($future);
 
-        $running_jobs->{$future} = { id => $id, routine => $routine };
+            delete $running_jobs->{$future};
 
-        $loop->await($future);
+            my $message = $future->get;
 
-        print STDERR $future->failure
-          if $future->is_failed;
+            croak $message
+              unless $future->is_done;
+
+            # collection was successful
+            $labentry->_mark_coll_finished($name, $script->version);
+            $cmap->satisfy($name);
+
+            my $status = 0;
+            $hook->($labentry, 'finish', $script, $id, $status)
+              if $hook;
+
+            debug_msg(3, "FINISH $id ($status)");
+        }
     }
 
     return;
