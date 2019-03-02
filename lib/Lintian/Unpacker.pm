@@ -25,6 +25,7 @@ use v5.16;
 
 use parent 'Class::Accessor::Fast';
 
+use Carp;
 use IO::Async::Function;
 use IO::Async::Loop;
 use List::Compare;
@@ -399,7 +400,13 @@ sub process_tasks {
 
     my $loop = IO::Async::Loop->new;
 
+    $ENV{PERL_PATH_TINY_NO_FLOCK} = 1;
+
     for my $queue (@super) {
+
+        debug_msg(3, 'RUNNING QUEUE: ' . join(', ', sort @{$queue}))
+          if $debug_enabled;
+
         for my $task (@{$queue}) {
 
             my $id = $task->id;
@@ -446,15 +453,8 @@ sub process_tasks {
             $hook->($labentry, 'start', $script, $id)
               if $hook;
 
-            my $future = $loop->new_future;
-            my $process = $loop->open_process(
+            my $run = IO::Async::Function->new(
                 code  => sub {
-                    my $name = $script->name;
-
-                    my $package = $labentry->pkg_name;
-                    my $type = $labentry->pkg_type;
-                    my $basedir = $labentry->base_dir;
-                    my $labid = $labentry->identifier;
 
                     $0 = "$name (processing $labid)"
                       unless $script->interface eq 'exec';
@@ -463,59 +463,35 @@ sub process_tasks {
 
                     return $status;
                 },
+                max_workers => 1,
+            );
+            $loop->add($run);
 
-                on_finish  => sub {
-                    my ($self, $exitcode) = @_;
-                    my $status = ($exitcode >> 8);
-
-                    if ($status) {
-                        # failed ...
-                        $future->fail(
-                            "Process $id failed with status $status");
-                    }
-
-                    # The collection was success
-                    $future->done("Process $id finished");
-                },
-
-                on_exception  => sub {
-                    my ($self, $exception, $errno, $exitcode) = @_;
-                    my $message;
-
-                    if (length $exception) {
-                        $message
-                          = "Process $id died with exception $exception (errno $errno)";
-
-                    } elsif((my $status = W_EXITSTATUS($exitcode)) == 255) {
-                        $message = "Process $id failed to exec() - $errno";
-                    }else {
-                        $message
-                          = "Process $id exited with exit status $status";
-                    }
-
-                    $future->fail($message);
-                });
-
-            $running_jobs->{$future} = $id;
-
+            my $future = $run->call(args => []);
             $loop->await($future);
 
-            delete $running_jobs->{$future};
+            $running_jobs->{$future} = $task;
 
-            my $message = $future->get;
+            if ($future->is_done) {
 
-            croak $message
-              unless $future->is_done;
+                # collection was successful
+                my $status = 0;
+                $hook->($labentry, 'finish', $script, $id, $status)
+                  if $hook;
 
-            # collection was successful
-            $labentry->_mark_coll_finished($name, $script->version);
-            $cmap->satisfy($name);
+                $labentry->_mark_coll_finished($name, $script->version);
+                $cmap->satisfy($name);
 
-            my $status = 0;
-            $hook->($labentry, 'finish', $script, $id, $status)
-              if $hook;
+                debug_msg(3, "FINISH $id ($status)");
 
-            debug_msg(3, "FINISH $id ($status)");
+            } elsif ($future->is_failed) {
+
+                # collection failed
+                croak $future->get;
+
+            } else {
+                # unknown
+            }
         }
     }
 
