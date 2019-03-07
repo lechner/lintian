@@ -22,9 +22,8 @@
 use strict;
 use warnings;
 
+use IO::Async::Loop;
 use Test::More tests => 8;
-
-use IPC::Run();
 
 $ENV{'LINTIAN_TEST_ROOT'} //= '.';
 
@@ -34,11 +33,21 @@ my $spelling_data = 'data/spelling/corrections';
 sub t {
     my ($input, $expected, @options) = @_;
     my $output;
-    my $cmd
-      = IPC::Run::start([$cmd_path, @options],'<', \$input,'>', \$output,);
-    $cmd->finish;
-    cmp_ok($cmd->result, '==', 0, 'exit code 0');
-    cmp_ok($output, 'eq', $expected, 'expected output');
+    my $loop = IO::Async::Loop->new;
+    my $future = $loop->new_future;
+    $loop->open_process(
+        command => [$cmd_path, @options],
+        stdin => { from => $input },
+        stdout => { into => \$output },
+        on_finish => sub {
+            my ($self, $exitcode) = @_;
+            my $status = ($exitcode >> 8);
+            is($status, 0, 'exit status 0');
+            is($output, $expected, 'expected output');
+            $future->done('Done with spellintian');
+            return;
+        });
+    $loop->await($future);
     return;
 }
 
