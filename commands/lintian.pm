@@ -1266,8 +1266,7 @@ sub _find_changes {
     if (exists $ENV{'DEB_BUILD_ARCH'}) {
         push @archs, $ENV{'DEB_BUILD_ARCH'};
     } else {
-        my %opts = ('err' => '&1',);
-        my $arch = safe_qx(\%opts, 'dpkg', '--print-architecture');
+        my $arch = safe_qx('dpkg', '--print-architecture');
         chomp($arch);
         push @archs, $arch if $arch ne '';
     }

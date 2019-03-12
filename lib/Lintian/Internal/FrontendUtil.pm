@@ -115,9 +115,8 @@ sub load_collections {
 # Return the default number of parallelization to be used
 sub default_parallel {
     # check cpuinfo for the number of cores...
-    my %opts = ('err' => '&1');
-    my $cpus = safe_qx(\%opts, 'nproc');
-    if ($? == 0 and $cpus =~ m/^\d+$/) {
+    my $cpus = safe_qx('nproc');
+    if ($cpus =~ m/^\d+$/) {
         # Running up to twice the number of cores usually gets the most out
         # of the CPUs and disks but it might be too aggressive to be the
         # default for -j. Only use <cores>+1 then.

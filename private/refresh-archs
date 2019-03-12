@@ -30,8 +30,11 @@ BEGIN {
 }
 
 use lib "$ENV{'LINTIAN_ROOT'}/lib/";
+
 use Lintian::Command qw(safe_qx);
 use Lintian::Deb822Parser qw(parse_dpkg_control);
+
+use constant NEWLINE => qq{\n};
 
 my $datapath = shift;
 my %hardening = (
@@ -127,7 +130,9 @@ unless ($datapath) {
 
 $ENV{'LC_ALL'} = 'C';
 
-my $dver = safe_qx([qw(dpkg-architecture --version)], '|', [qw(head -n1)]);
+my $output = safe_qx(qw(dpkg-architecture --version));
+my @lines = split(NEWLINE, $output);
+my $dver = shift @lines;
 chomp $dver;
 
 open(my $dlfd, '-|', 'dpkg-architecture', '-L');
