@@ -468,6 +468,9 @@ sub process_tasks {
                 # change the process name; possible overwritten by exec
                 $0 = "$name (processing $labid)";
 
+                # Path::Tiny blocks sometimes; perhaps the scheduling conflicts
+                $ENV{PERL_PATH_TINY_NO_FLOCK} = 1;
+
                 $script->collect($package, $type, $basedir);
 
                 return 0;
