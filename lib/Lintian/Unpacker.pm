@@ -372,6 +372,8 @@ sub process_tasks {
             $pid = $loop->fork(
                 code  => sub {
                     # child
+
+                    undef($IO::Async::Loop::ONE_TRUE_LOOP);
                     my $ret = 0;
                     my $pkg_name = $lpkg->pkg_name;
                     my $pkg_type = $lpkg->pkg_type;
