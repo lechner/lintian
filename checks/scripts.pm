@@ -1365,16 +1365,24 @@ sub script_is_evil_and_wrong {
 sub check_script_syntax {
     my ($interpreter, $path) = @_;
     my $fs_path = $path->fs_path;
-    my $pid = do_fork();
-    if ($pid == 0) {
-        open(STDOUT, '>', '/dev/null');
-        open(STDERR, '>&', \*STDOUT);
-        exec $interpreter, '-n', $fs_path
-          or internal_error("cannot exec $interpreter: $!");
-    } else {
-        waitpid $pid, 0;
-    }
-    return $?;
+
+    my $error;
+    my (undef, $stderr, $status) = capture {
+        try {
+            my @command = ($interpreter, '-n', $fs_path);
+            system(@command) == 0
+              or die "system @command failed: $?";
+        }
+          catch {
+              # catch any error
+              $error = $_;
+          };
+    };
+
+    print $stderr
+      if length $stderr;
+
+    return $status;
 }
 
 sub remove_comments {
