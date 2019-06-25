@@ -17,7 +17,6 @@ our %MODULES =(
     'Lintian::CheckScript'        => [],
     'Lintian::Collect'            => [],
     'Lintian::Collect::Group'     => [],
-    'Lintian::Command'            => [],
     'Lintian::Command::Simple'    => [],
     'Lintian::Data'               => [],
     'Lintian::DepMap'             => [],
@@ -34,6 +33,7 @@ our %MODULES =(
     'Lintian::Tags'               => [],
     'Lintian::Tag::Info'          => [],
     'Lintian::Tag::Override'      => [],
+    'Lintian::Util'               => [],
 );
 # TODO:
 #		Lintian::Collect::Binary
