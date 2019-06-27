@@ -115,8 +115,8 @@ NB: This value is ignored if "profile" is not given.
 =item "jobs"
 
 This value is the max number of jobs to be run in parallel.  Can be
-changed with the L</jobs> method later.  If omitted, it defaults to
-0.  Refer to L</jobs> for more info.
+changed with the L</max_jobs> method later.  If omitted, it defaults to
+0.  Refer to L</max_jobs> for more info.
 
 =back
 
@@ -128,7 +128,7 @@ sub new {
     $options //= {};
     my %extra = %{ $options->{'extra-coll'} // {} };
     my $profile = $options->{'profile'};
-    my $jobs = $options->{'jobs'} // 0;
+    my $max_jobs = $options->{'jobs'} // 0;
 
     my $clonedmap = $collmap->clone;
 
@@ -171,7 +171,7 @@ sub new {
         'coll2priority' => {},
         'collmap' => $clonedmap,
         'extra-coll' => \%extra,
-        'jobs' => $jobs,
+        'max_jobs' => $max_jobs,
         'profile' => $profile,
         'running-jobs' => {},
         'worktable' => {},
@@ -350,7 +350,7 @@ defined for other events.
 sub process_tasks {
     my ($self, $hooks) = @_;
     my $worklists = $self->{'worktable'};
-    my $jobs = $self->jobs;
+    my $max_jobs = $self->max_jobs;
 
     my $loop = IO::Async::Loop->new;
 
@@ -371,7 +371,7 @@ sub process_tasks {
 
     my @slices;
 
-    for (0..$jobs-1) {
+    for (0..$max_jobs-1) {
         my $task = $self->find_next_task();
         last if not $task;
 
@@ -472,6 +472,7 @@ sub start_task {
     my $labentry = $task->labentry;
     my $cmap = $task->cmap;
 
+    my $name = $script->name;
     my $labid = $labentry->identifier;
 
     my $running_jobs = $self->{'running-jobs'};
@@ -482,7 +483,6 @@ sub start_task {
     my $debug_enabled = $Lintian::Output::GLOBAL->debug;
 
     debug_msg(3, "START $id");
-    my $pid = -1;
 
     my $future = $loop->new_future;
 
@@ -492,42 +492,33 @@ sub start_task {
     $hook->($labentry, 'start', $script, $id)
       if $hook;
 
-    eval {
-
-        $pid = $loop->fork(
+    my $routine;
+    {
+        $routine = IO::Async::Routine->new(
             code  => sub {
 
                 # fixed upstream in 0.73
-                undef($IO::Async::Loop::ONE_TRUE_LOOP);
-
-                my $name = $script->name;
-                my $package = $labentry->pkg_name;
-                my $type = $labentry->pkg_type;
-                my $basedir = $labentry->base_dir;
+                undef $IO::Async::Loop::ONE_TRUE_LOOP;
 
                 # change the process name; possible overwritten by exec
                 $0 = "$name (processing $labid)";
 
                 my $ret = 0;
-                eval {$script->collect($package, $type, $basedir);};
+                eval {$task->run;};
                 if ($@) {
                     print STDERR $@;
                     $ret = 2;
                 }
-                POSIX::_exit($ret);
+                return $ret;
             },
 
-            on_exit  => sub {
-                my ($pid, $status) = @_;
-
-                delete $running_jobs->{$future};
+            on_return  => sub {
+                my ($self, $status) = @_;
 
                 debug_msg(3, "FINISH $id ($status)");
 
                 $hook->($labentry, 'finish', $script, $id, $status)
                   if $hook;
-
-                my $name = $script->name;
 
                 if ($status) {
                     # failed ...
@@ -543,12 +534,24 @@ sub start_task {
                 }
 
                 $future->done("Script $name for $labid finished");
+            },
 
+            on_die  => sub {
+                my ($self, $exception) = @_;
+
+                my $name = $script->name;
+                $future->fail(
+                    "Collection script $name for $labid died: $exception");
             });
-    };
+    }
 
     $future->on_ready(
         sub {
+            delete $running_jobs->{$future};
+
+            print STDERR $future->failure
+              if $future->is_failed;
+
             my $task = $self->find_next_task();
             $slice->done('No more tasks')
               unless $task;
@@ -563,13 +566,9 @@ sub start_task {
             }
         });
 
-    if ($hook) {
-        my $err = $@;
-        $hook->($labentry, 'failed', $script, $id, $err)
-          if $pid == -1;
-    }
+    $running_jobs->{$future} = { id => $id, job => $routine };
 
-    $running_jobs->{$future} = { id => $id, pid => $pid };
+    $loop->add($routine);
 
     return;
 }
@@ -615,17 +614,18 @@ unless process_tasks was interrupted somehow.
 sub kill_jobs {
     my ($self) = @_;
 
-    my @pids = map { $_->{pid} } values %{$self->{'running-jobs'}};
-    if (@pids) {
-        kill('TERM', @pids);
-        kill('KILL', @pids);
+    my @jobs = map { $_->{job} } values %{$self->{'running-jobs'}};
+
+    for my $process (@jobs) {
+        $process->kill(SIGTERM);
+        $process->kill(SIGKILL);
     }
 
     $self->{'running-jobs'} = {};
     return;
 }
 
-=item jobs
+=item max_jobs
 
 Returns or sets the max number of jobs to be processed in parallel.
 
@@ -634,7 +634,7 @@ jobs.
 
 =cut
 
-Lintian::Unpacker->mk_accessors(qw(jobs));
+Lintian::Unpacker->mk_accessors(qw(max_jobs));
 
 =back
 
