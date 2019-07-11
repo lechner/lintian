@@ -44,17 +44,19 @@ use Lintian::Util qw(check_path internal_error run_cmd pipe_tee);
 sub collect {
     my ($pkg, $type, $dir) = @_;
 
-    my $unpackeddir = "$dir/unpacked/";
+    my $unpackeddir = "$dir/unpacked";
     path($unpackeddir)->remove_tree
       if -d $unpackeddir;
 
     for my $file (qw(index index.gz index-errors unpacked-errors)) {
         unlink("$dir/$file") if -e "$dir/$file";
     }
-    # If we are asked to only remove the files stop right here
-    if ($type =~ m/^remove-/) {
-        return;
-    }
+
+    # stop here if we are only removing the files
+    return
+      if $type =~ m/^remove-/;
+
+    mkdir($unpackeddir, 0777);
 
     if ($type eq 'source') {
         if (can_use_dpkg_source()) {
@@ -78,41 +80,43 @@ sub collect {
               if $ENV{'LINTIAN_DEBUG'};
             libdpkg_unpack_dsc("$dir/dsc", "$dir/unpacked");
         }
-
-        # chdir for index_src
-        chdir("$dir/unpacked");
-        spawn(
-            { fail => 'error', out => "$dir/index.gz" },
-            [
-                'find', '(',  '-type', 'l',
-                # If symlink
-                '-printf', '%M 0/0 %s %AY-%Am-%Ad %AH:%AM %p -> %l\0',
-                '-true',             # elif dir [needs trailing slash]
-                ')', '-o', '(',  '-type', 'd',
-                '-printf', '%M 0/0 %s %AY-%Am-%Ad %AH:%AM %p/\0', '-true',
-                # else (not dir and not symlink)
-                ')', '-o', '-printf', '%M 0/0 %s %AY-%Am-%Ad %AH:%AM %p\0'
-            ],
-            # Link targets can have newlines in them.  A lesson learned by
-            # clasp (#765311) - We must also escape backslashes.  That would
-            # be the \x59 values (used to avoid a mass of backslashes).
-            '|',
-            ['perl', '-l', '-0', '-pe', 's/\x5c/\x5c\x5c/g; s/\n/\\\n/g;'],
-            # Sort and compress
-            '|',
-            ['sort', '-k', '6'],
-            '|',
-            ['gzip', '-9nc']);
-
-        # fix permissions
-        run_cmd('chmod', '-R', 'u+rwX,o+rX,o-w', "$dir/unpacked");
-
     } else {
-        mkdir("$dir/unpacked", 0777);
+
+    }
+
+    # chdir for index
+    chdir("$dir/unpacked");
+
+    # information format for find, same for all
+    my $infostamp = '%M 0/0 %s %AY-%Am-%Ad %AH:%AM';
+    spawn(
+          { fail => 'error', out => "$dir/index.gz" },
+          [
+           'find', '(',  '-type', 'l',
+           # if symlink, two line format with null at ends
+           '-printf', "$infostamp link %p\0-> %l\0",
+           '-true',
+           ')', '-o', '(',  '-type', 'd',
+           # no slash at the end for directories
+           '-printf', "$infostamp dir %p\0", '-true',
+           # else (not dir and not symlink)
+           ')', '-o', '-printf', "$infostamp default %p\0"
+          ],
+          # Sort and compress
+          '|',
+          ['sort', '-k', '6'],
+          '|',
+          ['gzip', '-9nc']);
+
+    unless ($type eq 'source') {
 
         extract_and_index_deb($dir);
+    }
 
-        # fix permissions
+    # fix permissions
+    if ($type eq 'source') {
+        run_cmd('chmod', '-R', 'u+rwX,o+rX,o-w', "$dir/unpacked");
+    } else {
         run_cmd('chmod', '-R', 'u+rwX,go-w', "$dir/unpacked");
     }
 
