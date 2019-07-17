@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use autodie;
+
+use File::Basename;
+use File::Find::Rule;
+use Path::Tiny;
+
+my @checkdescs = File::Find::Rule->file()
+                            ->name( '*.desc' )
+                            ->in( 'checks' );
+
+print "Files: " . scalar @checkdescs . "\n";
+
+my $count = 0;
+
+for my $path (@checkdescs) {
+#	print "File: $path\n";
+
+  my $text = path($path)->slurp;
+
+  my @paragraphs = split /\n{2,}/, $text;
+
+  $_ =~ s/\s*$// for @paragraphs;
+
+  my ($check) = (@paragraphs[0] =~ qr/Check-Script:\s*(\S+)/);
+
+  my @taginfo = grep { /^Tag:/m } @paragraphs;
+
+  $count += scalar @taginfo;
+
+  print "$check: " . scalar @taginfo . "\n";
+
+  die "error" unless basename($path) eq "$check.desc";
+
+  my @tagnames;
+
+  for my $taginfo (@taginfo) {
+
+    my ($tagname) = ($taginfo =~ qr/Tag:\s*(\S+)\s+/);
+    push(@tagnames, $tagname);
+
+    my $tagdir = "tags/" . substr($tagname, 0, 1);
+    path($tagdir)->mkpath
+      unless -e $tagdir;
+
+    path("$tagdir/$tagname.desc")->spew($taginfo . "\n");
+  }
+
+  path($path)->spew($paragraphs[0] . "\n");
+
+  path($path)->append("Tags:\n")
+    if @tagnames;
+
+  path($path)->append(" $_\n") for sort @tagnames;
+}
+
+print "Count: $count\n";
