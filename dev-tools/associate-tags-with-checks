@@ -1,0 +1,70 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use autodie;
+
+use File::Basename;
+use File::Find::Rule;
+use Path::Tiny;
+
+my @checkdescs = File::Find::Rule->file()
+                            ->name( '*.desc' )
+                            ->in( 'checks' );
+
+print "Files: " . scalar @checkdescs . "\n";
+
+my $count = 0;
+
+for my $path (sort @checkdescs) {
+#	print "File: $path\n";
+
+  my $text = path($path)->slurp;
+
+  my @paragraphs = split /\n{2,}/, $text;
+
+  $_ =~ s/\s*$// for @paragraphs;
+
+  my ($check) = ($paragraphs[0] =~ qr/Check-Script:\s*(\S+)/);
+
+  my ($taglist) = ($paragraphs[0] =~ qr/Tags:((?:\n \S+)*)/);
+
+  die "problem in check $check"
+    unless defined $taglist;
+
+  my @tagnames = split(q{ }, $taglist);
+
+  $count += scalar @tagnames;
+
+#  print "$check: \n";
+#  print" $_\n" for @tagnames;
+
+  die "error" unless basename($path) eq "$check.desc";
+
+  while (@tagnames) {
+
+    my $tagname = shift @tagnames;
+
+    # my ($tagname) = ($taginfo =~ qr/Tag:\s*(\S+)\s+/);
+    # push(@tagnames, $tagname);
+
+    my $tagdir = "tags/" . substr($tagname, 0, 1);
+    my $tagpath = "$tagdir/$tagname.desc";
+    my $tagcontents = path($tagpath)->slurp;
+    $tagcontents =~ s/(\nCertainty:[^\n]*\n)/$1Check: $check\n/;
+
+    path($tagpath)->spew($tagcontents);
+  }
+
+  my $tagless = $paragraphs[0];
+  $tagless =~ s/Tags:((?:\n \S+)*)//;
+
+  path($path)->spew($tagless);
+
+  path($path)->append("Tags:\n")
+    if @tagnames;
+
+  path($path)->append(" $_\n") for sort @tagnames;
+}
+
+print "Count: $count\n";
