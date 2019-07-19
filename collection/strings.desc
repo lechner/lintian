@@ -4,6 +4,6 @@ Info: This script runs the strings(1) command over all files of a binary
  package.
 Type: binary, udeb
 Priority: 5
-Interface: perl-coll
+Interface: exec
 Needs-Info: unpacked, file-info
 

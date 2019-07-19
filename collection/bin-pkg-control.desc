@@ -3,4 +3,4 @@ Info: This script extracts the contents of control.tar into the control/
  and creates control-index as well.
 Type: binary, udeb
 Priority: 10
-Interface: perl-coll
+Interface: exec
