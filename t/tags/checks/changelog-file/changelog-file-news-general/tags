@@ -1,4 +1,4 @@
-changelog-file-news-general (binary): syntax-error-in-debian-news-file line 11 "found eof where expected more change data or trailer"
+changelog-file-news-general (binary): syntax-error-in-debian-news-file line 11 "found end of file where expected more change data or trailer"
 changelog-file-news-general (binary): syntax-error-in-debian-news-file line 11 "badly formatted trailer line"
 changelog-file-news-general (binary): spelling-error-in-news-debian speling spelling
 changelog-file-news-general (binary): debian-news-file-uses-obsolete-national-encoding at line 4

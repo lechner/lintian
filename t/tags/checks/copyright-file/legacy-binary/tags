@@ -20,7 +20,7 @@ binary (binary): unquoted-string-in-menu-item usr/share/menu/binary needs:2
 binary (binary): unquoted-string-in-menu-item usr/share/menu/binary needs:1
 binary (binary): unquoted-string-in-menu-item usr/lib/menu/binary needs:2
 binary (binary): unquoted-string-in-menu-item usr/lib/menu/binary needs:1
-binary (binary): syntax-error-in-debian-news-file line 12 "found eof where expected more change data or trailer"
+binary (binary): syntax-error-in-debian-news-file line 12 "found end of file where expected more change data or trailer"
 binary (binary): syntax-error-in-debian-news-file line 12 "badly formatted trailer line"
 binary (binary): symlink-should-be-relative usr/share/doc/binary/html/ch3.html /usr/share/doc/binary/htm/ch1.html
 binary (binary): symlink-contains-spurious-segments usr/share/doc/binary/html/ch2.html ../html/./ch1.html

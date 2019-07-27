@@ -24,10 +24,10 @@ use warnings;
 use autodie;
 
 use Date::Format qw(time2str);
+use Dpkg::Changelog::Debian;
 use Encode qw(decode);
 use List::Util qw(first);
 use List::MoreUtils qw(any);
-use Parse::DebianChangelog;
 
 use Lintian::Check qw(check_spelling spelling_tag_emitter);
 use Lintian::Relation::Version qw(versions_gt);
@@ -125,11 +125,12 @@ sub run {
             tag 'debian-news-file-uses-obsolete-national-encoding',
               "at line $line";
         }
-        my $changes = Parse::DebianChangelog->init({
-            infile => $dnews,
-            quiet => 1,
-        });
-        if (my @errors = $changes->get_parse_errors) {
+        my $news_entries = Dpkg::Changelog::Debian->new(
+            range   => { all => 1 },
+            verbose => 0,
+        );
+        $news_entries->load($dnews);
+        if (my @errors = $news_entries->get_parse_errors) {
             for (@errors) {
                 tag 'syntax-error-in-debian-news-file', "line $_->[1]",
                   "\"$_->[2]\"";
@@ -137,15 +138,17 @@ sub run {
         }
 
         # Some checks on the most recent entry.
-        if ($changes->data and defined(($changes->data)[0])) {
-            ($news) = $changes->data;
-            if ($news->Distribution && $news->Distribution =~ /unreleased/i) {
-                tag 'debian-news-entry-has-strange-distribution',
-                  $news->Distribution;
+        if (@{$news_entries} and defined($news_entries->[0])) {
+            $news = $news_entries->[0];
+            my $distribution = ($news->get_distributions())[0];
+            if ($distribution && $distribution =~ /unreleased/i) {
+                tag 'debian-news-entry-has-strange-distribution',$distribution;
             }
-            check_spelling($news->Changes, $group->info->spelling_exceptions,
+            my $changes = $news->get_part('changes');
+            $changes = join("\n", @$changes) if ref $changes eq 'ARRAY';
+            check_spelling($changes, $group->info->spelling_exceptions,
                 $SPELLING_ERROR_IN_NEWS);
-            if ($news->Changes =~ /^\s*\*\s/) {
+            if ($changes =~ /^\s*\*\s/) {
                 tag 'debian-news-entry-uses-asterisk';
             }
         }
@@ -486,17 +489,32 @@ sub run {
         }
 
         # Compare against NEWS.Debian if available.
-        if ($news and $news->Version) {
-            if ($entry->Version eq $news->Version) {
+        if ($news and $news->get_version()->is_valid()) {
+            if ($entry->Version eq $news->get_version()) {
                 for my $field (qw/Distribution Urgency/) {
-                    if ($entry->$field ne $news->$field) {
-                        tag 'changelog-news-debian-mismatch', lc($field),
-                          $entry->$field . ' != ' . $news->$field;
+                    # XXX: simplify once Lintian::Collect::Binary uses
+                    # Dpkg::Changelog::Debian too
+                    if ($field eq 'Distribution') {
+                        my $distribution = ($news->get_distributions())[0];
+                        if ($entry->$field ne $distribution) {
+                            tag 'changelog-news-debian-mismatch', lc($field),
+                              $entry->$field . ' != ' . $distribution;
+
+                        }
+                    } else {
+                        my $dpkg_changelog_debian_method = 'get_' . lc($field);
+                        if ($entry->$field ne
+                            $news->$dpkg_changelog_debian_method()) {
+                            tag 'changelog-news-debian-mismatch', lc($field),
+                              $entry->$field . ' != '
+                              . $news->$dpkg_changelog_debian_method();
+                        }
                     }
                 }
             }
-            unless ($versions{$news->Version}) {
-                tag 'debian-news-entry-has-unknown-version', $news->Version;
+            unless ($versions{$news->get_version()}) {
+                tag 'debian-news-entry-has-unknown-version',
+                  $news->get_version();
             }
         }
 
@@ -505,16 +523,12 @@ sub run {
         # sufficient.  If the changelog uses a non-UTF-8 encoding,
         # this will mangle it, but it doesn't matter for the length
         # check.
-        #
-        # Parse::DebianChangelog adds an additional space to the
-        # beginning of each line, so we have to adjust for that in the
-        # length check.
         my @lines = split("\n", decode('utf-8', $changes));
         for my $i (0 .. $#lines) {
             my $line = $i + $chloff;
             tag 'debian-changelog-line-too-short', $1, "(line $line)"
               if $lines[$i] =~ /^   [*]\s(.{1,5})$/ and $1 !~ /:$/;
-            if (length($lines[$i]) > 81
+            if (length($lines[$i]) > 80
                 and $lines[$i] !~ /^[\s.o*+-]*(?:[Ss]ee:?\s+)?\S+$/) {
                 tag 'debian-changelog-line-too-long', "line $line";
             }
@@ -531,7 +545,7 @@ sub run {
 }
 
 # read the changelog itself and check for some issues we cannot find
-# with Parse::DebianChangelog.  Also return the "real" line number for
+# with Dpkg::Changelog::Debian.  Also return the "real" line number for
 # the first line of text in the first entry.
 #
 sub check_dch {
