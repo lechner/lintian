@@ -1212,11 +1212,13 @@ sub parse_config_file {
 }
 
 sub _find_changes {
-    require Parse::DebianChangelog;
-    my $dch = Parse::DebianChangelog->init(
-        { infile => 'debian/changelog', quiet => 1 });
-    my $data = $dch->data;
-    my $last = $data ? $data->[0] : undef;
+    require Dpkg::Changelog::Debian;
+    my $dch = Dpkg::Changelog::Debian->new(
+        range   => { all => 1 },
+        verbose => 0,
+    );
+    $dch->load('debian/changelog');
+    my $last = @{$dch} ? $dch->[0] : undef;
     my ($source, $version);
     my $changes;
     my @archs;
@@ -1237,8 +1239,8 @@ sub _find_changes {
         }
         exit 2;
     }
-    $version = $last->Version;
-    $source = $last->Source;
+    $version = $last->get_version()->as_string();
+    $source = $last->get_source();
     if (not defined $version or not defined $source) {
         $version//='<N/A>';
         $source//='<N/A>';
