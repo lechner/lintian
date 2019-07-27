@@ -22,7 +22,6 @@ package Lintian::source_changelog;
 use strict;
 use warnings;
 use autodie;
-use Parse::DebianChangelog;
 use Lintian::Tags qw(tag);
 
 sub parse_version {
