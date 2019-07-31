@@ -27,7 +27,7 @@ use parent 'Lintian::Collect::Package';
 
 use Lintian::Relation;
 use Carp qw(croak);
-use Parse::DebianChangelog;
+use Dpkg::Changelog::Debian;
 
 use Lintian::Deb822Parser qw(parse_dpkg_control);
 use Lintian::Util qw(internal_error open_gz get_file_checksum strip);
@@ -120,7 +120,7 @@ sub native {
 
 =item changelog
 
-Returns the changelog of the binary package as a Parse::DebianChangelog
+Returns the changelog of the binary package as a Dpkg::Changelog::Debian
 object, or undef if the changelog doesn't exist.  The changelog-file
 collection script must have been run to create the changelog file, which
 this method expects to find in F<changelog>.
@@ -143,8 +143,11 @@ sub changelog {
             $changelog = $shared->{'changelog'}{$checksum};
         }
         if (not $changelog) {
-            my %opts = (infile => $dch, quiet => 1);
-            $changelog = Parse::DebianChangelog->init(\%opts);
+            $changelog = Dpkg::Changelog::Debian->new(
+                range   => { all => 1 },
+                verbose => 0,
+            );
+            $changelog->load($dch);
             if (defined($shared)) {
                 $shared->{'changelog'}{$checksum} = $changelog;
             }

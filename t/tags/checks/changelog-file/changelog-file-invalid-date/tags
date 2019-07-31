@@ -1,2 +1,3 @@
-changelog-file-invalid-date (binary): invalid-date-in-debian-changelog (Thurs -> Thu)
-changelog-file-invalid-date (binary): invalid-date-in-debian-changelog (Sept -> Sep)
+changelog-file-invalid-date (binary): syntax-error-in-debian-changelog line 8 "ignoring invalid week day 'Thurs'"
+changelog-file-invalid-date (binary): syntax-error-in-debian-changelog line 8 "cannot parse non-conformant date '14 Sept 2017 10:47:43 +0000'"
+changelog-file-invalid-date (binary): syntax-error-in-debian-changelog line 8 "invalid abbreviated month name 'Sept'"

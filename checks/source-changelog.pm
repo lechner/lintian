@@ -85,11 +85,11 @@ sub parse_version {
 sub run {
     my ($pkg, undef, $info, undef, undef) = @_;
 
-    my @entries = $info->changelog->data;
+    my @entries = @{$info->changelog};
 
     if (@entries > 0) {
         my ($latest_version, $reconstructed)
-          =parse_version $entries[0]->Version, $info->native;
+          =parse_version $entries[0]->get_version()->as_string(), $info->native;
 
         tag 'malformed-debian-changelog-version', $latest_version->{Literal},
           $reconstructed
@@ -110,13 +110,13 @@ sub run {
     }
 
     if (@entries > 1) {
-        my $first_timestamp = $entries[0]->Timestamp;
-        my $second_timestamp = $entries[1]->Timestamp;
+        my $first_timestamp = $entries[0]->get_timepiece();
+        my $second_timestamp = $entries[1]->get_timepiece();
 
         if ($first_timestamp && $second_timestamp) {
             tag 'latest-debian-changelog-entry-without-new-date'
               unless ($first_timestamp - $second_timestamp) > 0
-              || lc($entries[0]->Distribution) eq 'unreleased';
+              || lc(($entries[0]->get_distributions())[0]) eq 'unreleased';
         }
     }
 

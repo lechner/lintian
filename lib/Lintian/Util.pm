@@ -50,6 +50,7 @@ BEGIN {
     }
 
     @EXPORT_OK = (qw(
+          get_changes_as_string
           get_deb_info
           get_dsc_info
           get_file_checksum
@@ -159,6 +160,34 @@ our $PKGVERSION_REGEX = qr/
 =back
 
 =head1 FUNCTIONS
+
+=over 4
+
+=item get_changes_as_string(DPKG_CHANGELOG_ENTRY_DEBIAN)
+
+Takes a DPKG_CHANGELOG_ENTRY_DEBIAN is
+a Dpkg::Changelog::Entry::Debian object as unique argument.
+
+Returns the entire "changes" part as a string.
+
+This is a wrapper around Dpkg::Changelog::Entry's get_changes method,
+that returns either a string (for a single line) or an array ref (for
+multiple lines), which makes it a little inconvenient to use.
+
+=cut
+
+sub get_changes_as_string {
+    my $changelog_entry = shift;
+
+    defined $changelog_entry or return;
+    $changelog_entry->can('get_part')
+        or croak "Argument needs to support the 'get_part' method";
+
+    my $changes = $changelog_entry->get_part('changes');
+    $changes = join("\n", @$changes) if ref $changes eq 'ARRAY';
+
+    return $changes;
+}
 
 =over 4
 

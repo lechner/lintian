@@ -46,7 +46,6 @@ Tags:
  experimental-to-unstable-without-comment
  html-changelog-without-text-version
  improbable-bug-number-in-closes
- invalid-date-in-debian-changelog
  latest-changelog-entry-without-new-date
  latest-debian-changelog-entry-changed-to-native
  latest-debian-changelog-entry-reuses-existing-version

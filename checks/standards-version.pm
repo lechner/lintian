@@ -95,10 +95,13 @@ sub run {
     my $changes = $info->changelog;
     my ($pkgdate, $dist);
     if (defined $changes) {
-        my ($entry) = $changes->data;
-        $pkgdate
-          = ($entry && $entry->Timestamp) ? $entry->Timestamp : $CURRENT_DATE;
-        $dist = ($entry && $entry->Distribution)? $entry->Distribution : '';
+        my $entry = $changes->[0];
+        $pkgdate = ($entry && $entry->get_timepiece())
+            ? $entry->get_timepiece->epoch
+            : $CURRENT_DATE;
+        $dist = ($entry && ($entry->get_distributions())[0])
+            ? ($entry->get_distributions())[0]
+            : '';
     } else {
         $pkgdate = $CURRENT_DATE;
     }
@@ -158,9 +161,9 @@ sub run {
                 tag 'out-of-date-standards-version', $tag;
                 return;
             }
-            my ($entry) = $changes->data;
+            my $entry = $changes->[0];
             my $timestamp
-              = ($entry && $entry->Timestamp) ? $entry->Timestamp : 0;
+              = ($entry && $entry->get_timepiece()) ? $entry->get_timepiece()->epoch : 0;
             for my $standard (@STANDARDS) {
                 last if $standard->[0] eq $stdver;
                 if ($standard->[1] < $timestamp) {

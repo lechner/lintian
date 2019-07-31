@@ -260,9 +260,12 @@ sub run {
       $info->sorted_index;
 
     my %old_versions;
-    for my $entry ($info->changelog ? $info->changelog->data : ()) {
-        my $timestamp = $entry->Timestamp // $OLDSTABLE_RELEASE;
-        $old_versions{$entry->Version} = $timestamp
+    my $dch = $info->changelog;
+    for my $entry (defined $dch ? @{$dch} : ()) {
+        my $timestamp = defined $entry->get_timepiece()
+            ? $entry->get_timepiece()->epoch
+            : $OLDSTABLE_RELEASE;
+        $old_versions{$entry->get_version()->as_string()} = $timestamp
           if $timestamp < $OLDSTABLE_RELEASE;
     }
 

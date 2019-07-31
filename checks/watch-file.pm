@@ -215,14 +215,13 @@ sub run {
 
     my $changes = $info->changelog;
     if (defined $changes and %dversions) {
-        my $data = $changes->data;
         my %changelog_versions;
         my $count = 1;
-        for my $entry (@{$data}) {
-            my $uversion = $entry->Version;
+        for my $entry (@{$changes}) {
+            my $uversion = $entry->get_version->as_string;
             $uversion =~ s/-[^-]+$//; # revision
             $uversion =~ s/^\d+://; # epoch
-            $changelog_versions{'orig'}{$entry->Version} = $count;
+            $changelog_versions{'orig'}{$entry->get_version->as_string} = $count;
 
             # Preserve the first value here to correctly detect old versions.
             $changelog_versions{'mangled'}{$uversion} = $count

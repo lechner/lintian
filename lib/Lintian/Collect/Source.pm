@@ -27,7 +27,7 @@ use Carp qw(croak);
 use Scalar::Util qw(blessed);
 
 use Lintian::Relation;
-use Parse::DebianChangelog;
+use Dpkg::Changelog::Debian;
 
 use Lintian::Deb822Parser qw(read_dpkg_control);
 use Lintian::Util
@@ -91,7 +91,7 @@ modules are also available.
 
 =item changelog
 
-Returns the changelog of the source package as a Parse::DebianChangelog
+Returns the changelog of the source package as a Dpkg::Changelog::Debian
 object, or C<undef> if the changelog cannot be resolved safely.
 
 Needs-Info requirements for using I<changelog>: L<Same as index_resolved_path|Lintian::Collect::Package/index_resolved_path(PATH)>
@@ -110,8 +110,11 @@ sub changelog {
             $changelog = $shared->{'changelog'}{$checksum};
         }
         if (not $changelog) {
-            my %opts = (infile => $dch->fs_path, quiet => 1);
-            $changelog = Parse::DebianChangelog->init(\%opts);
+            $changelog = Dpkg::Changelog::Debian->new(
+                range   => { all => 1 },
+                verbose => 0,
+            );
+            $changelog->load($dch->fs_path);
             if (defined($shared)) {
                 $shared->{'changelog'}{$checksum} = $changelog;
             }

@@ -28,6 +28,7 @@ use List::MoreUtils qw(any none);
 use Lintian::Tags qw(tag);
 use Lintian::Relation qw(:constants);
 use Lintian::Relation::Version qw(versions_lte);
+use Lintian::Util qw(get_changes_as_string);
 
 my @FIELDS = qw(Depends Pre-Depends Recommends Suggests);
 my @IGNORE = qw(-dev$ -docs?$ -common$ -tools$);
@@ -168,7 +169,8 @@ sub _run_binary {
 
     my $deps = Lintian::Relation->and($info->relation('all'),
         $info->relation('provides'), $pkg);
-    my @entries = $info->changelog ? $info->changelog->data : ();
+    my $dch = $info->changelog;
+    my @entries = defined $dch ? @{$dch} : ();
 
     # Check for missing dependencies
     if ($pkg !~ /-dbg$/) {
@@ -201,9 +203,9 @@ sub _run_binary {
     if (    $pkg =~ /^python2?-/
         and none { $pkg =~ /$_$/ } @IGNORE
         and @entries == 1
-        and $entries[0]->Changes
+        and get_changes_as_string($entries[0])
         !~ /\bpython ?2(?:\.x)? (?:variant|version)\b/im
-        and index($entries[0]->Changes, $pkg) == -1) {
+        and index(get_changes_as_string($entries[0]), $pkg) == -1) {
         tag 'new-package-should-not-package-python2-module', $pkg;
     }
 

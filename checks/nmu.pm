@@ -27,7 +27,7 @@ use List::MoreUtils qw(any);
 use List::Util qw(first);
 
 use Lintian::Tags qw(tag);
-use Lintian::Util qw(strip);
+use Lintian::Util qw(get_changes_as_string strip);
 
 sub run {
     my (undef, undef, $info) = @_;
@@ -48,9 +48,9 @@ sub run {
     return if not $info->changelog;
 
     # Get some data from the changelog file.
-    my ($entry) = $info->changelog->data;
-    my $uploader = canonicalize($entry->Maintainer // '');
-    my $changes = $entry->Changes;
+    my $entry = $info->changelog->[0];
+    my $uploader = canonicalize($entry->get_maintainer() // '');
+    my $changes = get_changes_as_string($entry);
     $changes =~ s/^(\s*\n)+//;
     my $firstline = first { /^\s*\*/ } split('\n', $changes);
 

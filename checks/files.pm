@@ -336,9 +336,9 @@ sub run {
     my $changes = $info->changelog;
     my $changelog_timestamp = 0;
     if (defined $changes) {
-        my ($entry) = $changes->data;
-        if ($entry && $entry->Timestamp) {
-            $changelog_timestamp = $entry->Timestamp;
+        my $entry = $changes->[0];
+        if ($entry && $entry->get_timepiece()) {
+            $changelog_timestamp = $entry->get_timepiece()->epoch;
         }
     }
 

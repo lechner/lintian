@@ -25,6 +25,8 @@ use autodie;
 
 use Date::Format qw(time2str);
 use Dpkg::Changelog::Debian;
+use Dpkg::Changelog::Entry::Debian qw(find_closes);
+use Dpkg::Version;
 use Encode qw(decode);
 use List::Util qw(first);
 use List::MoreUtils qw(any);
@@ -32,14 +34,12 @@ use List::MoreUtils qw(any);
 use Lintian::Check qw(check_spelling spelling_tag_emitter);
 use Lintian::Relation::Version qw(versions_gt);
 use Lintian::Tags qw(tag);
-use Lintian::Util qw(file_is_encoded_in_non_utf8 strip);
+use Lintian::Util qw(file_is_encoded_in_non_utf8 get_changes_as_string strip);
 
 use Lintian::Data ();
 
 my $BUGS_NUMBER
   = Lintian::Data->new('changelog-file/bugs-number', qr/\s*=\s*/o);
-my $INVALID_DATES
-  = Lintian::Data->new('changelog-file/invalid-dates', qr/\s*=\>\s*/o);
 
 my $SPELLING_ERROR_IN_NEWS
   = spelling_tag_emitter('spelling-error-in-news-debian');
@@ -144,8 +144,7 @@ sub run {
             if ($distribution && $distribution =~ /unreleased/i) {
                 tag 'debian-news-entry-has-strange-distribution',$distribution;
             }
-            my $changes = $news->get_part('changes');
-            $changes = join("\n", @$changes) if ref $changes eq 'ARRAY';
+            my $changes = get_changes_as_string($news);
             check_spelling($changes, $group->info->spelling_exceptions,
                 $SPELLING_ERROR_IN_NEWS);
             if ($changes =~ /^\s*\*\s/) {
@@ -262,30 +261,27 @@ sub run {
     # report the line number of "too-long" lines.  (#657402)
     my $chloff = check_dch($dchpath);
 
-    my @entries = $changelog->data;
+    my @entries = defined $changelog ? @{$changelog} : ();
     if (@entries) {
         my %versions;
-        my $first_timestamp = $entries[0]->Timestamp;
         for my $entry (@entries) {
-            if ($entry->Maintainer) {
-                if ($entry->Maintainer =~ /<([^>\@]+\@[^>.]*)>/) {
+            if ($entry->get_maintainer()) {
+                if ($entry->get_maintainer() =~ /<([^>\@]+\@[^>.]*)>/) {
                     tag 'debian-changelog-file-contains-invalid-email-address',
                       $1;
                 }
             }
-            $versions{$entry->Version} = 1 if defined $entry->Version;
+            $versions{$entry->get_version()->as_string()} = 1
+                if defined $entry->get_version();
         }
 
+        my $first_timepiece = $entries[0]->get_timepiece();
+        my $first_timestamp = defined $entries[0]->get_timepiece()
+            ? $entries[0]->get_timepiece()->epoch
+            : undef;
         if ($first_timestamp) {
             my $warned = 0;
-            my $dch_date = $entries[0]->Date;
-            foreach my $re ($INVALID_DATES->all()) {
-                if ($dch_date =~ m/($re)/i) {
-                    my $repl = $INVALID_DATES->value($re);
-                    tag 'invalid-date-in-debian-changelog', "($1 -> $repl)";
-                    $warned = 1;
-                }
-            }
+            my $dch_date = $entries[0]->get_timestamp;
             my ($weekday_declared, $date) = split(m/,\s*/, $dch_date, 2);
             $date //= '';
             my ($tz, $weekday_actual);
@@ -303,34 +299,38 @@ sub run {
         }
 
         if (@entries > 1) {
-            my $second_timestamp = $entries[1]->Timestamp;
+            my $second_timestamp = $entries[1]->get_timepiece()->epoch;
 
             if ($first_timestamp && $second_timestamp) {
                 tag 'latest-changelog-entry-without-new-date'
                   unless (($first_timestamp - $second_timestamp) > 0
-                    or lc($entries[0]->Distribution) eq 'unreleased');
+                    or lc(($entries[0]->get_distributions())[0]) eq 'unreleased');
             }
 
-            my $first_version = $entries[0]->Version;
-            my $second_version = $entries[1]->Version;
+            my $first_version = $entries[0]->get_version()->as_string();
+            my $second_version = $entries[1]->get_version()->as_string();
             if ($first_version and $second_version) {
                 tag 'latest-debian-changelog-entry-without-new-version'
                   unless versions_gt($first_version, $second_version)
-                  or $entries[0]->Changes =~ /backport/i
-                  or $entries[0]->Distribution =~ /-security$/i
-                  or $entries[0]->Source ne $entries[1]->Source;
+                  or get_changes_as_string($entries[0]) =~ /backport/i
+                  or ($entries[0]->get_distributions())[0] =~ /-security$/i
+                  or $entries[0]->get_source() ne $entries[1]->get_source();
                 tag 'latest-debian-changelog-entry-changed-to-native'
                   if $native_pkg and $second_version =~ m/-/;
             }
             my $first_version_without_epoch = $first_version =~ s/^([^:]+)://r;
             foreach my $entry (@entries[1..$#entries]) {
-                my $version_without_epoch = $entry->Version =~ s/^([^:]+)://r;
+                my $version_without_epoch = defined $entry->get_version
+                    ? $entry->get_version->as_string =~ s/^([^:]+)://r
+                    : '';
                 if (    $first_version_without_epoch eq $version_without_epoch
-                    and $entries[0]->Source eq $entry->Source) {
+                    and $entries[0]->get_source() eq $entry->get_source()) {
+                    my $entry_version = $entry->get_version();
+                    my $entry_date = $entry->get_timestamp();
                     tag
                       'latest-debian-changelog-entry-reuses-existing-version',
-                      "$first_version == $entry->{Version}",
-                      "(last used: $entry->{Date})";
+                      "$first_version == $entry_version",
+                      "(last used: $entry_date)";
                     last;
                 }
             }
@@ -352,8 +352,8 @@ sub run {
             }
 
             if (    $first_upstream eq $second_upstream
-                and $entries[0]->Source eq $entries[1]->Source) {
-                if ($entries[0]->Changes
+                and $entries[0]->get_source() eq $entries[1]->get_source()) {
+                if (get_changes_as_string($entries[0])
                     =~ /^\s*\*\s+new\s+upstream\s+(?:\S+\s+)?release\b/im) {
                     tag 'possible-new-upstream-release-without-new-version';
                 }
@@ -365,10 +365,10 @@ sub run {
                 }
             }
 
-            my $first_dist = lc $entries[0]->Distribution;
-            my $second_dist = lc $entries[1]->Distribution;
+            my $first_dist = lc(($entries[0]->get_distributions())[0]);
+            my $second_dist = lc(($entries[1]->get_distributions())[0]);
             if ($first_dist eq 'unstable' and $second_dist eq 'experimental') {
-                unless ($entries[0]->Changes
+                unless ($entries[0]->get_part('changes')
                     =~ /\bto\s+['"‘“]?(?:unstable|sid)['"’”]?\b/im) {
                     tag 'experimental-to-unstable-without-comment';
                 }
@@ -387,7 +387,7 @@ sub run {
             if ($first_epoch and $second_epoch ne $first_epoch) {
                 tag 'epoch-change-without-comment',
                   "$second_epoch -> $first_epoch"
-                  unless $entries[0]->Changes =~ /\bepoch\b/im;
+                  unless get_changes_as_string($entries[0]) =~ /\bepoch\b/im;
 
                 my ($first_no_epoch) = ($first_upstream =~ s/^([^:]+)://r);
                 my ($second_no_epoch) = ($second_upstream =~ s/^([^:]+)://r);
@@ -401,12 +401,12 @@ sub run {
         # Some checks should only be done against the most recent
         # changelog entry.
         my $entry = $entries[0];
-        my $changes = $entry->Changes || '';
+        my $changes = get_changes_as_string($entry) || '';
 
         if (@entries == 1) {
-            if ($entry->Version and $entry->Version =~ /-1$/) {
+            if ($entry->get_version()->is_valid() and $entry->get_version() =~ /-1$/) {
                 tag 'new-package-should-close-itp-bug'
-                  unless @{ $entry->Closes };
+                  unless find_closes(get_changes_as_string($entry));
             }
             if ($changes=~ /(?:#?\s*)(?:\d|n)+ is the bug number of your ITP/i)
             {
@@ -429,7 +429,7 @@ sub run {
             if($intended eq 'sid') {
                 $intended = 'unstable';
             }
-            my $uploaded = $entry->Distribution;
+            my $uploaded = ($entry->get_distributions())[0];
             unless ($uploaded eq 'UNRELEASED') {
                 unless($uploaded eq $intended) {
                     tag 'bad-intended-distribution',
@@ -446,12 +446,12 @@ sub run {
         $changesempty =~ s,\W,,gms;
         if (length($changesempty)==0) {
             tag 'changelog-empty-entry'
-              unless $entry->Distribution eq 'UNRELEASED';
+              unless ($entry->get_distributions())[0] eq 'UNRELEASED';
         }
 
-        my $closes = $entry->Closes;
+        my @closes = find_closes(get_changes_as_string($entry));
         # before bug 50004 bts removed bug instead of archiving
-        for my $bug (@$closes) {
+        for my $bug (@closes) {
             if (   $bug < $BUGS_NUMBER->value('min-bug')
                 || $bug > $BUGS_NUMBER->value('max-bug')) {
                 tag 'improbable-bug-number-in-closes', $bug;
@@ -467,10 +467,12 @@ sub run {
         # version number that was already there.
         my $changelog_version;
         if ($info->native) {
-            $changelog_version = $entry->Version || '';
+            $changelog_version = defined $entry->get_version()
+                ? $entry->get_version()->as_string()
+                : '';
         } else {
-            if ($entry->Version) {
-                ($changelog_version) = (split('-', $entry->Version))[-1];
+            if (defined $entry->get_version()) {
+                ($changelog_version) = (split('-', $entry->get_version()->as_string()))[-1];
             } else {
                 $changelog_version = '';
             }
@@ -478,35 +480,34 @@ sub run {
         unless (not $info->native and $changelog_version =~ /\./) {
             if (    $info->native
                 and $changelog_version =~ /testing|(?:un)?stable/i) {
-                tag 'version-refers-to-distribution', $entry->Version;
+                tag 'version-refers-to-distribution', $entry->get_version();
             } elsif ($changelog_version =~ /woody|sarge|etch|lenny|squeeze/) {
                 my %unreleased_dists
                   = map { $_ => 1 } qw(unstable experimental);
-                if (exists($unreleased_dists{$entry->Distribution})) {
-                    tag 'version-refers-to-distribution', $entry->Version;
+                if (exists($unreleased_dists{($entry->get_distributions())[0]})) {
+                    tag 'version-refers-to-distribution', $entry->get_version();
                 }
             }
         }
 
         # Compare against NEWS.Debian if available.
         if ($news and $news->get_version()->is_valid()) {
-            if ($entry->Version eq $news->get_version()) {
+            if (version_compare($entry->get_version(), $news->get_version()) == 0 ) {
                 for my $field (qw/Distribution Urgency/) {
-                    # XXX: simplify once Lintian::Collect::Binary uses
-                    # Dpkg::Changelog::Debian too
                     if ($field eq 'Distribution') {
-                        my $distribution = ($news->get_distributions())[0];
-                        if ($entry->$field ne $distribution) {
+                        my $entry_distribution = ($entry->get_distributions())[0];
+                        my $news_distribution  = ($news->get_distributions())[0];
+                        if ($entry_distribution ne $news_distribution) {
                             tag 'changelog-news-debian-mismatch', lc($field),
-                              $entry->$field . ' != ' . $distribution;
+                              $entry_distribution . ' != ' . $news_distribution;
 
                         }
                     } else {
                         my $dpkg_changelog_debian_method = 'get_' . lc($field);
-                        if ($entry->$field ne
+                        if ($entry->$dpkg_changelog_debian_method() ne
                             $news->$dpkg_changelog_debian_method()) {
                             tag 'changelog-news-debian-mismatch', lc($field),
-                              $entry->$field . ' != '
+                              $entry->$dpkg_changelog_debian_method . ' != '
                               . $news->$dpkg_changelog_debian_method();
                         }
                     }
