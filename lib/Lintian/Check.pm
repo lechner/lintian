@@ -30,7 +30,9 @@ use Lintian::Data;
 use Lintian::Tags qw(tag);
 use Lintian::Util qw(strip);
 
+use constant SPACE => q{ };
 use constant DOUBLE_QUOTE => q{"};
+use constant ARROW => qq{\N{U+2b9e}};
 
 our $KNOWN_BOUNCE_ADDRESSES = Lintian::Data->new('fields/bounce-addresses');
 
@@ -244,6 +246,8 @@ when this is not given from the tagname.
 sub spelling_tag_emitter {
     my (@orig_args) = @_;
     return sub {
+        return tag(@orig_args, $_[0] . SPACE . ARROW . SPACE . $_[1])
+          if @_ == 2;
         return tag(@orig_args, @_);
     };
 }
