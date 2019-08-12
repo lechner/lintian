@@ -24,6 +24,7 @@ use v5.16;
 
 use Carp;
 use Date::Parse;
+use Dpkg::Changelog::Debian;
 use Moo;
 
 use Lintian::Info::Changelog::Entry;
@@ -95,234 +96,85 @@ Parses STRING as the content of a debian/changelog file.
 sub parse {
     my ($self, $contents) = @_;
 
-    $self->_set_errors([]);
-    $self->_set_entries([]);
+    my $changelog = Dpkg::Changelog::Debian->new(
+                  range   => { all => 1 },
+                  verbose => 0,
+                                                );
 
-    my @lines = split(/\n/, $contents);
+    open my $fh, "<", \$contents;
+    $changelog->parse($fh, 'string');
+    close $fh;
 
-    # based on /usr/lib/dpkg/parsechangelog/debian
-    my $expect='first heading';
-    my $entry = Lintian::Info::Changelog::Entry->new;
-    my $blanklines = 0;
-    my $unknowncounter = 1; # to make version unique, e.g. for using as id
-    my $lineno = 0;
+    my @errors = @{$changelog->get_parse_errors};
 
-    local $_;
-    for (@lines) {
-        $lineno++;
+    # discard first element, 'string'
+    shift @_ for @errors;
 
-        # trim end
-        s/\s+\r?$//;
-        #	printf(STDERR "%-39.39s %-39.39s\n",$expect,$_);
-        if (
-m/^(?<Source>\w[-+0-9a-z.]*) \((?<Version>[^\(\) \t]+)\)(?<Distribution>(?:\s+[-+0-9a-z.]+)+)\;\s*(?<kvpairs>.*)$/i
-        ){
-            my $literal = $_;
+    $self->_set_errors(\@errors);
 
-            my $source = $+{Source};
-            my $version = $+{Version};
-            my $distribution = $+{Distribution};
-            my $kvpairs = $+{kvpairs};
+    my @theirs;
 
-            unless ($expect eq 'first heading'
-                || $expect eq 'next heading or eof') {
-                $entry->ERROR([
-                    $lineno,"found start of entry where expected $expect",
-                    $literal
-                ]);
-                push @{$self->errors}, $entry->ERROR;
-            }
+    my @ours;
+    for my $their (@theirs) {
+        my $our = Lintian::Info::Changelog::Entry->new;
 
-            unless ($entry->is_empty) {
-                $entry->Closes(find_closes($entry->Changes));
-                #		    print STDERR, Dumper($entry);
-                push @{$self->entries}, $entry;
-                $entry = Lintian::Info::Changelog::Entry->new;
-            }
+        $our->Source(UNKNOWN);
 
-            $entry->Header($literal);
+        $our->Version($their->get_version->as_string)
+          if defined $their->get_version;
 
-            $entry->Source($source);
-            $entry->Version($version);
+        $our->Distribution(UNKNOWN);
 
-            $distribution =~ s/^\s+//;
-            $entry->Distribution($distribution);
+        $our->Urgency(UNKNOWN);
+        $our->Urgency_LC(UNKNOWN);
+        $our->Urgency_Comment(EMPTY);
 
-            my %kvdone;
-            for my $kv (split(/\s*,\s*/,$kvpairs)) {
-                $kv =~ m/^([-0-9a-z]+)\=\s*(.*\S)$/i
-                  ||push @{$self->errors},
-                  [$lineno,"bad key-value after \`;\': \`$kv\'"];
-                my $k = ucfirst $1;
-                my $v = $2;
-                $kvdone{$k}++
-                  && push @{$self->errors}, [$lineno,"repeated key-value $k"];
-                if ($k eq 'Urgency') {
-                    $v =~ m/^([-0-9a-z]+)((\s+.*)?)$/i
-                      ||push @{$self->errors},
-                      [$lineno,"badly formatted urgency value $v"];
-                    $entry->Urgency($1);
-                    $entry->Urgency_LC(lc($1));
-                    $entry->Urgency_Comment($2);
-                } elsif ($k =~ m/^X[BCS]+-/i) {
-                    # Extensions - XB for putting in Binary,
-                    # XC for putting in Control, XS for putting in Source
-                    $entry->{$k}= $v;
-                } else {
-                    push @{$self->errors},
-                      [$lineno,"unknown key-value key $k - copying to XS-$k"];
-                    $entry->{ExtraFields}{"XS-$k"} = $v;
-                }
-            }
-            $expect= 'start of change data';
-            $blanklines = 0;
+        $entry->Header($literal);
 
-        } elsif (m/^(?:;;\s*)?Local variables:/io) {
-            last; # skip Emacs variables at end of file
+        $entry->Source($source);
+        $entry->Version($version);
 
-        } elsif (m/^vim:/io) {
-            last; # skip vim variables at end of file
+        $distribution =~ s/^\s+//;
+        $entry->Distribution($distribution);
 
-        } elsif (m/^\$\w+:.*\$/o) {
-            next; # skip stuff that look like a CVS keyword
-
-        } elsif (m/^\# /o) {
-            next; # skip comments, even that's not supported
-
-        } elsif (m,^/\*.*\*/,o) {
-            next; # more comments
-
-        } elsif (
-m/^(?:\w+\s+\w+\s+\d{1,2} \d{1,2}:\d{1,2}:\d{1,2}\s+[\w\s]*\d{4})\s+(?:.*)\s+(?:<|\()(?:.*)(?:\)|>)/o
-            || m/^(?:\w+\s+\w+\s+\d{1,2},?\s*\d{4})\s+(?:.*)\s+(?:<|\()(?:.*)(?:\)|>)/o
-            || m/^(?:\w[-+0-9a-z.]*) \((?:[^\(\) \t]+)\)\;?/io
-            || m/^(?:[\w.+-]+)(?:-| )\S+ Debian \S+/io
-            || m/^Changes from version (?:.*) to (?:.*):/io
-            || m/^Changes for [\w.+-]+-[\w.+-]+:?$/io
-            || m/^Old Changelog:$/io
-            || m/^(?:\d+:)?\w[\w.+~-]*:?$/o) {
-            # save entries on old changelog format verbatim
-            # we assume the rest of the file will be in old format once we
-            # hit it for the first time
-            last;
-
-        } elsif (m/^\S/) {
-            push @{$self->errors},[$lineno,'badly formatted heading line', $_];
-
-        } elsif (
-m/^ \-\- (?<name>.*) <(?<email>.*)>(?<sep>  ?)(?<date>(?:\w+\,\s*)?\d{1,2}\s+\w+\s+\d{4}\s+\d{1,2}:\d\d:\d\d\s+[-+]\d{4}(?:\s+\([^\\\(\)]\))?)$/o
-        ) {
-
-            my $literal = $_;
-
-            my $name = $+{name};
-            my $email = $+{email};
-            my $separator = $+{sep};
-            my $date = $+{date};
-
-            $expect eq 'more change data or trailer'
-              || push @{$self->errors},
-              [$lineno,"found trailer where expected $expect", $literal];
-            if ($separator ne SPACE . SPACE) {
-                push @{$self->errors},
-                  [$lineno,'badly formatted trailer line', $literal];
-            }
-            $entry->Trailer($literal);
-            $entry->Maintainer("$name <$email>")
-              unless length $entry->Maintainer;
-
-            unless(length $entry->Date && defined $entry->Timestamp) {
-                $entry->Date($date);
-                $entry->Timestamp(str2time($date));
-                unless (defined $entry->Timestamp) {
-                    push @{$self->errors},
-                      [$lineno,"could not parse date $date"];
-                }
-            }
-            $expect = 'next heading or eof';
-
-        } elsif (m/^ \-\-/) {
-            $entry->{ERROR}= [$lineno, 'badly formatted trailer line', $_];
-            push @{$self->errors}, $entry->ERROR;
-            #	    $expect = 'next heading or eof'
-            #		if $expect eq 'more change data or trailer';
-
-        } elsif (m/^\s{2,}(\S)/) {
-            $expect eq 'start of change data'
-              || $expect eq 'more change data or trailer'
-              || do {
-                push @{$self->errors},
-                  [$lineno,"found change data where expected $expect", $_];
-                if (($expect eq 'next heading or eof')
-                    && !$entry->is_empty) {
-                    # lets assume we have missed the actual header line
-                    $entry->Closes(find_closes($entry->Changes));
-                    #		    print STDERR, Dumper($entry);
-                    push @{$self->entries}, $entry;
-                    $entry = Lintian::Info::Changelog::Entry->new;
-                    $entry->Source(UNKNOWN);
-                    $entry->Distribution(UNKNOWN);
-                    $entry->Urgency(UNKNOWN);
-                    $entry->Urgency_LC(UNKNOWN);
-                    $entry->Version(UNKNOWN . ($unknowncounter++));
-                    $entry->Urgency_Comment(EMPTY);
-                    $entry->ERROR([
-                        $lineno,
-                        "found change data where expected $expect",$_
-                    ]);
-                }
-              };
-            $entry->{'Changes'} .= (" \n" x $blanklines)." $_\n";
-            if (!$entry->{Items} || $1 eq ASTERISK) {
-                $entry->{Items} ||= [];
-                push @{$entry->{Items}}, "$_\n";
-            } else {
-                $entry->{'Items'}[-1] .= (" \n" x $blanklines)." $_\n";
-            }
-            $blanklines = 0;
-            $expect = 'more change data or trailer';
-
-        } elsif (!m/\S/) {
-            next
-              if $expect eq 'start of change data'
-              || $expect eq 'next heading or eof';
-            $expect eq 'more change data or trailer'
-              || push @{$self->errors},
-              [$lineno,"found blank line where expected $expect"];
-            $blanklines++;
-
-        } else {
-            push @{$self->errors}, [$lineno, 'unrecognised line', $_];
-            (        $expect eq 'start of change data'
-                  || $expect eq 'more change data or trailer')
-              && do {
-                # lets assume change data if we expected it
-                $entry->{'Changes'} .= (" \n" x $blanklines)." $_\n";
-                if (!$entry->{Items}) {
-                    $entry->{Items} ||= [];
-                    push @{$entry->{Items}}, "$_\n";
-                } else {
-                    $entry->{'Items'}[-1] .= (" \n" x $blanklines)." $_\n";
-                }
-                $blanklines = 0;
-                $expect = 'more change data or trailer';
-                $entry->ERROR([$lineno, 'unrecognised line', $_]);
-              };
-        }
-    }
-
-    $expect eq 'next heading or eof'
-      || do {
-        $entry->ERROR([$lineno, "found eof where expected $expect"]);
-        push @{$self->errors}, $entry->ERROR;
-      };
-    unless ($entry->is_empty) {
         $entry->Closes(find_closes($entry->Changes));
-        push @{$self->entries}, $entry;
-    }
 
-    #    use Data::Dumper;
-    #    print Dumper( $self );
+        $entry->Urgency($1);
+        $entry->Urgency_LC(lc($1));
+        $entry->Urgency_Comment($2);
+
+        $entry->{ExtraFields}{"XS-$k"} = $v;
+
+        $entry->Trailer($literal);
+
+        my ($name, $email) = ($their->get_maintainer() =~ qr//);
+        $our->Maintainer("$name <$email>");
+
+
+        my $dch_date = $entries[0]->get_timestamp;
+        my ($weekday_declared, $date) = split(m/,\s*/, $dch_date, 2);
+        $date //= EMPTY;
+        my ($tz, $weekday_actual);
+
+        $our->Date($date);
+        $our->Timestamp($their->get_timepiece->epoch)
+          if defined $their->get_timepiece;
+
+        my @changes = $changelog_entry->get_part('changes');
+        $changes = join("\n", @$changes) if ref $changes eq 'ARRAY';
+
+        $our->{'Changes'} .= (" \n" x $blanklines)." $_\n";
+
+        if (!$entry->{Items} || $1 eq ASTERISK) {
+            $entry->{Items} ||= [];
+            push @{$entry->{Items}}, "$_\n";
+        } else {
+            $entry->{'Items'}[-1] .= (" \n" x $blanklines)." $_\n";
+        }
+
+        push(@ours, $our);
+    }
+    $self->_set_entries(\@ours);
 
     return;
 }
