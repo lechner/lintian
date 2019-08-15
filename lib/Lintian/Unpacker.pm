@@ -542,17 +542,20 @@ sub start_task {
             $hook->($labentry, 'finish', $script, $id, $status)
               if $hook;
 
-            my $task = $self->find_next_task();
-            $slice->done('No more tasks')
-              unless $task;
-            $self->start_task($slice, $hooks, $task)
-              if $task;
-
            if ($Lintian::Output::GLOBAL->debug) {
                 my @ids = map { $_->{id} } values %{$self->{'running-jobs'}};
                 my $queue = join(', ', sort @ids);
                 debug_msg(3, "RUNNING QUEUE: $queue");
             }
+
+            my $task = $self->find_next_task();
+            if ($task) {
+                $self->start_task($slice, $hooks, $task);
+            } else {
+                $slice->done('No more tasks');
+            }
+
+            return;
         });
 
     $running_jobs->{$future} = { id => $id, job => $routine };
