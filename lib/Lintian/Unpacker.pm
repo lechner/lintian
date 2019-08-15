@@ -393,7 +393,6 @@ sub find_next_task {
     my $active = $self->{active};
     my $colls = $self->{'collmap'};
     my $colls_not_scheduled = $self->{colls_not_scheduled};
-    my $debug_enabled = $Lintian::Output::GLOBAL->debug;
 
     {
         unless (@{$self->{queue}}) {
@@ -423,7 +422,7 @@ sub find_next_task {
 
                     # collect info
                     $cmap->select($name);
-                    debug_msg(3, "READY ${name}-${labid}") if $debug_enabled;
+                    debug_msg(3, "READY ${name}-${labid}");
 
                     my $task = Lintian::Unpack::Task->new;
                     $task->id("${name}-${labid}");
@@ -440,8 +439,7 @@ sub find_next_task {
                 }
                 if (not keys(%{$procs})) {
                     debug_msg(3,
-                        "DISCARD $name (all instances have been scheduled)")
-                      if $debug_enabled;
+                        "DISCARD $name (all instances have been scheduled)");
                     splice(@coll_priorities, $i, 1);
                     $i--;
                 }
@@ -453,8 +451,7 @@ sub find_next_task {
             debug_msg(4,
                     'QUEUE non-empty with '
                   . scalar(@{$self->{queue}})
-                  . ' item(s).  Taking one.')
-              if $debug_enabled;
+                  . ' item(s).  Taking one.');
         }
     }
 
@@ -479,7 +476,6 @@ sub start_task {
     my $active = $self->{active};
     my $failed = $self->{failed};
 
-    my $debug_enabled = $Lintian::Output::GLOBAL->debug;
     debug_msg(3, "START $id");
 
     $hooks //= {};
@@ -552,8 +548,7 @@ sub start_task {
             $self->start_task($slice, $hooks, $task)
               if $task;
 
-            my $debug_enabled = $Lintian::Output::GLOBAL->debug;
-            if ($debug_enabled) {
+           if ($Lintian::Output::GLOBAL->debug) {
                 my @ids = map { $_->{id} } values %{$self->{'running-jobs'}};
                 my $queue = join(', ', sort @ids);
                 debug_msg(3, "RUNNING QUEUE: $queue");
