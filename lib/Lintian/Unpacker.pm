@@ -492,68 +492,62 @@ sub start_task {
     $hook->($labentry, 'start', $script, $id)
       if $hook;
 
-    my $routine;
-    {
-        $routine = IO::Async::Routine->new(
-            code  => sub {
+    my $routine = IO::Async::Routine->new(
+        code  => sub {
 
-                # fixed upstream in 0.73
-                undef $IO::Async::Loop::ONE_TRUE_LOOP;
+            # fixed upstream in 0.73
+            undef $IO::Async::Loop::ONE_TRUE_LOOP;
 
-                # change the process name; possible overwritten by exec
-                $0 = "$name (processing $labid)";
+            # change the process name; possible overwritten by exec
+            $0 = "$name (processing $labid)";
 
-                return eval {$task->run;};
-            },
+            my $error = eval {$task->run;};
+            die $error
+              if length $error;
 
-            on_return  => sub {
-                my ($self, $error) = @_;
+            return 0;
+        },
 
-                my $status = 0;
-                if (length $error) {
-                    $status = 2;
-                }
+        on_return  => sub {
+            my ($self, $result) = @_;
 
-                debug_msg(3, "FINISH $id ($status)");
+            # collection was a success
+            $cmap->satisfy($name);
+            # If the entry is marked as failed, don't break the loop
+            # for it.
+            $active->{$labid} = 1
+              unless $failed->{$labid} || !$cmap->selectable;
 
-                $hook->($labentry, 'finish', $script, $id, $status)
-                  if $hook;
+            $future->done("Script $name for $labid finished");
+        },
 
-                if ($status) {
-                    # failed ...
-                    $failed->{$labid} = 1;
-                    delete $active->{$labid};
-                }else {
-                    # The collection was success
-                    $cmap->satisfy($name);
-                    # If the entry is marked as failed, don't break the loop
-                    # for it.
-                    $active->{$labid} = 1
-                      unless $failed->{$labid} || !$cmap->selectable;
-                }
+        on_die  => sub {
+            my ($self, $exception) = @_;
 
-                if(length $error) {
-                    $future->fail($error);
-                } else {
-                    $future->done("Script $name for $labid finished");
-                }
-            },
+            # collection failed
+            $failed->{$labid} = 1;
+            delete $active->{$labid};
 
-            on_die  => sub {
-                my ($self, $exception) = @_;
-
-                my $name = $script->name;
-                $future->fail(
-                    "Collection script $name for $labid died: $exception");
-            });
-    }
+            my $name = $script->name;
+            $future->fail(
+                "Collection script $name for $labid died: $exception");
+        });
 
     $future->on_ready(
         sub {
             delete $running_jobs->{$future};
 
-            print STDERR $future->failure
-              if $future->is_failed;
+            my $status = 0;
+
+            if ($future->is_failed) {
+                $status = 2;
+                print STDERR $future->failure;
+            }
+
+            debug_msg(3, "FINISH $id ($status)");
+
+            $hook->($labentry, 'finish', $script, $id, $status)
+              if $hook;
 
             my $task = $self->find_next_task();
             $slice->done('No more tasks')
