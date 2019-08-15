@@ -136,70 +136,9 @@ sub run {
     my $type = $labentry->pkg_type;
     my $basedir = $labentry->base_dir;
 
-    # With a non-exec interface, let L::CollScript
-    # handle it.  Note that when run under
-    # Devel::Cover, we never take this route.
-    # This is because Devel::Cover relies on the
-    # END handler so all collections would get
-    # (more or less) 0 coverage in this case.
+    $script->collect($package, $type, $basedir);
 
-    # if ($script->interface ne 'exec'
-    #     and not $ENV{'LINTIAN_COVERAGE'}) {
-
-    #     eval {$script->collect($package, $type, $basedir);};
-    #     if ($@) {
-    #         print STDERR $@;
-    #         return 2;
-    #     }
-
-    #     return;
-    # }
-
-    # if (my $coverage_arg = $ENV{'LINTIAN_COVERAGE'}) {
-    #     my $p5opt = $ENV{'PERL5OPT'} // EMPTY;
-    #     $p5opt .= SPACE
-    #       unless $p5opt eq EMPTY;
-    #     $ENV{'PERL5OPT'} = "${p5opt} ${coverage_arg}";
-    # }
-
-    my $loop = IO::Async::Loop->really_new;
-    my $future = $loop->new_future;
-    my $process = IO::Async::Process->new(
-
-        command => [$script->script_path, $package, $type, $basedir],
-
-        on_finish => sub {
-            my ($pid, $exitcode) = @_;
-            my $status = ($exitcode >> 8);
-
-            $future->done("Done unpacking $id: status $status");
-        },
-
-        on_exception => sub {
-            my ($pid, $exception, $errno, $exitcode) = @_;
-            my $message;
-
-            if (length $exception) {
-                $message
-                  = "Process $id died with exception $exception (errno $errno)";
-
-            } elsif((my $status = W_EXITSTATUS($exitcode)) == 255){
-                $message= "Process $id failed to exec() - $errno";
-            }else {
-                $message= "Process $id exited with exit status $status";
-            }
-            $future->fail("exec $script->script_path: $message");
-        },
-    );
-
-    $loop->add($process);
-
-    $loop->await($future);
-
-    croak $future->get
-      if $future->is_failed;
-
-    return 0;
+    return;
 }
 
 has id => (is => 'rw',);
