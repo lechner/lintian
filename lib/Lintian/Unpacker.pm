@@ -528,6 +528,9 @@ sub start_task {
             $failed->{$labid} = 1;
             delete $active->{$labid};
 
+            print STDERR $exception
+              if length $exception;
+
             my $name = $script->name;
             $future->fail(
                 "Collection script $name for $labid died: $exception");
@@ -537,12 +540,7 @@ sub start_task {
         sub {
             delete $running_jobs->{$future};
 
-            my $status = 0;
-
-            if ($future->is_failed) {
-                $status = 2;
-                print STDERR $future->failure;
-            }
+            my $status = ($future->is_failed ? 2 : 0);
 
             debug_msg(3, "FINISH $id ($status)");
 
