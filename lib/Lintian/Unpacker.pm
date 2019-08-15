@@ -503,17 +503,16 @@ sub start_task {
                 # change the process name; possible overwritten by exec
                 $0 = "$name (processing $labid)";
 
-                my $ret = 0;
-                eval {$task->run;};
-                if ($@) {
-                    print STDERR $@;
-                    $ret = 2;
-                }
-                return $ret;
+                return eval {$task->run;};
             },
 
             on_return  => sub {
-                my ($self, $status) = @_;
+                my ($self, $error) = @_;
+
+                my $status = 0;
+                if (length $error) {
+                    $status = 2;
+                }
 
                 debug_msg(3, "FINISH $id ($status)");
 
@@ -533,7 +532,11 @@ sub start_task {
                       unless $failed->{$labid} || !$cmap->selectable;
                 }
 
-                $future->done("Script $name for $labid finished");
+                if(length $error) {
+                    $future->fail($error);
+                } else {
+                    $future->done("Script $name for $labid finished");
+                }
             },
 
             on_die  => sub {
