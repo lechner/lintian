@@ -479,18 +479,17 @@ sub start_task {
     my $active = $self->{active};
     my $failed = $self->{failed};
 
-    my $loop = IO::Async::Loop->new;
     my $debug_enabled = $Lintian::Output::GLOBAL->debug;
-
     debug_msg(3, "START $id");
-
-    my $future = $loop->new_future;
 
     $hooks //= {};
     my $hook = $hooks->{'coll-hook'};
 
     $hook->($labentry, 'start', $script, $id)
       if $hook;
+
+    my $loop = IO::Async::Loop->new;
+    my $future = $loop->new_future;
 
     my $routine = IO::Async::Routine->new(
         code  => sub {
