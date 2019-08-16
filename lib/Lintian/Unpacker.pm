@@ -542,7 +542,7 @@ sub start_task {
             $hook->($labentry, 'finish', $script, $id, $status)
               if $hook;
 
-           if ($Lintian::Output::GLOBAL->debug) {
+            if ($Lintian::Output::GLOBAL->debug) {
                 my @ids = map { $_->{id} } values %{$self->{'running-jobs'}};
                 my $queue = join(', ', sort @ids);
                 debug_msg(3, "RUNNING QUEUE: $queue");
