@@ -381,7 +381,12 @@ sub process_tasks {
         $self->start_task($slice, $hooks, $task);
     }
 
+    warn "Before big wait\n";
+
     Future->wait_all(@slices)->get;
+
+    warn "ALL DONE\n";
+
     return;
 }
 
@@ -562,8 +567,8 @@ sub start_task {
 
     $loop->add($routine);
 
-    # this is super essential
-    $loop->await($future);
+    # without this, the on_ready block is lost out of scope
+    $future->retain;
 
     return;
 }
