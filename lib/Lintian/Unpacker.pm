@@ -562,6 +562,9 @@ sub start_task {
 
     $loop->add($routine);
 
+    # this is super essential
+    $loop->await($future);
+
     return;
 }
 
