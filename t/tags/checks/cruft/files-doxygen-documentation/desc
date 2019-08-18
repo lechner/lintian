@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: files-doxygen-documentation
 Version: 1.0
 Description: Detect doxygen documentation problem

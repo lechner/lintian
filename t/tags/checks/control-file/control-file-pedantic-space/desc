@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: control-file-pedantic-space
 Version: 1.0
 Options: --pedantic

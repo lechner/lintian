@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: nmu-local-changelog
 Version: 1.0
 Description: Test suppression of NMU tags for local packages

@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: udev-rules
 Version: 1.0
 Description: Check udev rules for mistakes

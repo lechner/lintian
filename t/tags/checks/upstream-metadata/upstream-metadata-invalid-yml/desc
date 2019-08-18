@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: upstream-metadata-invalid-yml
 Version: 1.0
 Description: Tests for upstream-metadata being invalid yml

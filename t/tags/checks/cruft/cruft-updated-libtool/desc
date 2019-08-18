@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: cruft-updated-libtool
 Version: 1.0
 Extra-Build-Depends: libtool

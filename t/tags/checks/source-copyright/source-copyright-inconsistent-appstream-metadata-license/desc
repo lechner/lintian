@@ -1,4 +1,4 @@
 Testname: source-copyright-inconsistent-appstream-metadata-license
-Skeleton: upload-native
+Skeleton: source-native
 Version: 1.0
 Check: source-copyright

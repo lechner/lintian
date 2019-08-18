@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: maintscript-includes-maint-script-parameters
 Version: 1.0
 Dh-Compat-Level: 11

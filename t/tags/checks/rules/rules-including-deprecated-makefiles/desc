@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: rules-including-deprecated-makefiles
 Version: 1.0
 Dh-Compat-Level: 10

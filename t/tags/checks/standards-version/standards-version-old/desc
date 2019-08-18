@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: standards-version-old
 Version: 1.0
 # Overrides the "data/standards-version/ancient-date"

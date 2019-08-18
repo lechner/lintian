@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: cruft-crlf-eols
 Version: 1.0
 Package-Architecture: all

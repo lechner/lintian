@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: patch-systems-quilt-description
 Version: 1.0
 Description: Test for quilt patches which do not have accompanying descriptions

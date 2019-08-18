@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: legacy-debconf
 Source: debconf
 Version: 1~rc1

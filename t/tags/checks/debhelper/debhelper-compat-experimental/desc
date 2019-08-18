@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: debhelper-compat-experimental
 Version: 1.0
 Dh-Compat-Level: 13

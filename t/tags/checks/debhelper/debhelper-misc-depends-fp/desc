@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: debhelper-misc-depends-fp
 Version: 1.0
 Description: Test against missing reading the Depends field

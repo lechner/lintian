@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: legacy-etcfiles
 Source: etcfiles
 Version: 1

@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: legacy-foo++
 Source: foo++
 Version: 5

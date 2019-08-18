@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: source-copyright-pipe-as-or
 Version: 1.0
 Description: Test for the pipe symbol being used as an "or"

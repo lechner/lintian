@@ -1,4 +1,4 @@
-Skeleton: upload-native
+Skeleton: source-native
 Testname: nmu-case-insensitive
 Version: 1.0
 Author: Russ Allbery <rra@debian.ORG>
