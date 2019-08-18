@@ -5,6 +5,3 @@ debhelper-compat-old (source): older-source-format 1.0
 debhelper-compat-old (source): debian-rules-should-not-use-custom-compression-settings dh_builddeb -- -Zgzip (line 7)
 debhelper-compat-old (source): debian-build-system dh
 debhelper-compat-old (source): debhelper-compat-level 8
-debhelper-compat-old (binary): no-ctrl-scripts
-debhelper-compat-old (binary): data-tarball-compression-format gz
-debhelper-compat-old (binary): control-tarball-compression-format gz

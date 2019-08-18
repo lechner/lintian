@@ -16,15 +16,3 @@ foo++ (source): debian-watch-file-in-native-package
 foo++ (source): debian-control-file-uses-obsolete-national-encoding at line 19
 foo++ (source): build-info-in-binary-control-file-section Package foo++
 foo++ (source): ancient-standards-version 3.1.1 (released 1999-11-16) (current is CURRENT)
-foo++ (changes): changed-by-address-malformed Marc 'HE' Brockschmidt <he@unknown>
-foo++-helper (binary): wrong-debian-qa-address-set-as-maintainer Lintian Maintainer <debian-qa@lists.debian.org>
-foo++-helper (binary): empty-binary-package
-foo++ (binary): wrong-debian-qa-address-set-as-maintainer Lintian Maintainer <debian-qa@lists.debian.org>
-foo++ (binary): readme-debian-contains-invalid-email-address foo@unknown
-foo++ (binary): no-md5sums-control-file
-foo++ (binary): no-copyright-file
-foo++ (binary): latest-changelog-entry-without-new-date
-foo++ (binary): empty-binary-package
-foo++ (binary): debian-changelog-has-wrong-day-of-week 2003-04-14 is a Monday
-foo++ (binary): debian-changelog-file-uses-obsolete-national-encoding at line 11
-foo++ (binary): debian-changelog-file-contains-invalid-email-address he@unknown
