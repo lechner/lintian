@@ -346,7 +346,7 @@ sub run_lintian {
         },
     );
 
-    $loop->attach($syncprocess);
+    $loop->add($syncprocess);
     $syncdone->await;
 
     Log('Running lintian (via reporting-lintian-harness)');
@@ -461,7 +461,7 @@ sub generate_reports {
         },
     );
 
-    $loop->attach($htmlprocess);
+    $loop->add($htmlprocess);
     $htmldone->await;
 
     Log('');
