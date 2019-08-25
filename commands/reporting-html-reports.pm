@@ -286,17 +286,15 @@ sub process_data {
     my ($old_statistics, $archives, @archive_info);
 
     {
-        # Scoped to allow memory to be re-purposed.  The %qa and %sources
-        # structures are only used for a very few isolated items.
-        my (%qa, %sources);
+        # Scoped to allow memory to be re-purposed.  The %sources
+        # structure is only used for a very few isolated items.
+        my %sources;
         print "Collecting statistics...\n";
         $old_statistics
           = collect_statistics($profile, $state_cache, $statistics_file,
-            \@maintainers,\%sources, \%qa);
+            \@maintainers,\%sources);
 
         generate_lookup_tables(\%sources);
-
-        write_qa_list(\%qa);
 
         generate_package_index_packages(\%sources);
 
@@ -571,12 +569,10 @@ sub setup_output_dir {
 
 sub collect_statistics {
     my ($profile, $state_cache, $statistics_file, $maintainers_ref,
-        $sources_ref, $qa_list_ref)
-      = @_;
+        $sources_ref)= @_;
     my $old_statistics;
 
-    # For each of this maintainer's packages, add statistical information
-    # about the number of each type of tag to the QA data and build the
+    # For each of this maintainer's packages, build the
     # packages hash used for the package index.  We only do this for the
     # maintainer packages, not the uploader packages, to avoid
     # double-counting.
@@ -595,7 +591,6 @@ sub collect_statistics {
                       = $tags->[0]{pkg_info}{xref};
                 }
             }
-            $qa_list_ref->{$source} = \%count;
         }
     }
 
@@ -819,25 +814,6 @@ sub update_history_and_make_graphs {
         path($graph_dir)->remove_tree
           if -d $graph_dir;
     }
-    return;
-}
-
-# Write out the QA package list.  This is a space-delimited file that contains
-# the package name and then the error count, warning count, info count,
-# pedantic count, experimental count, and overridden tag count.
-sub write_qa_list {
-    my ($qa_data) = @_;
-
-    open(my $qa_fd, '>', "$HTML_TMP_DIR/qa-list.txt");
-    for my $source (sort(keys(%{$qa_data}))) {
-        print {$qa_fd} $source;
-        for my $code (qw/E W I P X O/) {
-            my $count = $qa_data->{$source}{$code} || 0;
-            print {$qa_fd} " $count";
-        }
-        print {$qa_fd} "\n";
-    }
-    close($qa_fd);
     return;
 }
 
