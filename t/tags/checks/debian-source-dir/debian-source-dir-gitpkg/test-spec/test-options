@@ -1,0 +1,3 @@
+Test-Against:
+ git-patches-not-exported
+Check: debian-source-dir

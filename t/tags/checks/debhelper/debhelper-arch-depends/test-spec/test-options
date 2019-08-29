@@ -1,0 +1,2 @@
+Test-Against: missing-build-dependency-for-dh_-command
+Check: debhelper

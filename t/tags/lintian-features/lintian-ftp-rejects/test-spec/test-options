@@ -1,0 +1,3 @@
+Profile: debian/ftp-master-auto-reject
+Match-Strategy: literal
+Output-Format: EWI

@@ -1,0 +1,3 @@
+Options: --pedantic
+Test-Against: inconsistent-appstream-metadata-license
+Check: source-copyright

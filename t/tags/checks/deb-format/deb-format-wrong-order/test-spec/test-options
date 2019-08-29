@@ -1,0 +1,3 @@
+# dpkg 1.17.2 Do not allow deb packages with control
+# and data members swapped
+Check: deb-format

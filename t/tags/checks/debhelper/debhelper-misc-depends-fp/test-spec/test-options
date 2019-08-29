@@ -1,0 +1,2 @@
+Test-Against: debhelper-but-no-misc-depends
+Check: debhelper

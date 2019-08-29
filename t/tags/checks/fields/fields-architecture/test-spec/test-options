@@ -1,0 +1,3 @@
+Test-Architectures: linux-any any-i386 kfreebsd-any hurd-any
+Test-Against: unknown-architecture
+Check: fields

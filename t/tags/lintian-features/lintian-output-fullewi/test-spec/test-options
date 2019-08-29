@@ -1,0 +1,3 @@
+Options: --pedantic --show-overrides
+Output-Format: fullewi
+Match-Strategy: literal

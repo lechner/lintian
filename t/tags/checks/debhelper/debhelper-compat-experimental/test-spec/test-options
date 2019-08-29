@@ -1,0 +1,4 @@
+# Overrides the "data/debhelper/compat-level"
+Profile: lintian-test
+Options: --include-dir ./lintian-include-dir --pedantic
+Check: debhelper

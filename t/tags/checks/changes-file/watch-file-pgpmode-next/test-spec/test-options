@@ -1,0 +1,3 @@
+Options: --pedantic
+References: #841000
+Check: changes-file

@@ -1,0 +1,3 @@
+Test-Architectures: i386 amd64
+Test-Against: triplet-dir-and-architecture-mismatch
+Check: files

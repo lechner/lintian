@@ -1,0 +1,3 @@
+Test-Against: binary-arch-rules-but-pkg-is-arch-indep
+References: Debian Bug#510869
+Check: rules

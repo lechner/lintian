@@ -1,0 +1,3 @@
+Options: --pedantic
+Test-Against: homepage-field-uses-insecure-uri
+Check: fields

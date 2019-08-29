@@ -1,0 +1,4 @@
+Options: --pedantic
+Test-Against:
+ old-python-version-field
+Check: python

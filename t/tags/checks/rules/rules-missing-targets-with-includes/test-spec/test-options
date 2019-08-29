@@ -1,0 +1,3 @@
+Test-Against: debian-rules-missing-required-target
+References: Debian Bug#607281
+Check: rules

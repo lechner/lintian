@@ -1,0 +1,3 @@
+Test-Against:
+ unknown-file-in-python-module-directory
+Check: files

@@ -1,0 +1,3 @@
+Test-Against: doc-base-unknown-section
+References: Debian Bug#495836
+Check: menus

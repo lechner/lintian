@@ -1,0 +1,3 @@
+Options: --suppress-tags
+ package-needs-versioned-debhelper-build-depends
+Check: debhelper

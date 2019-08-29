@@ -1,0 +1,3 @@
+Options: --pedantic
+References: Debian Bug#510398
+Check: watch-file

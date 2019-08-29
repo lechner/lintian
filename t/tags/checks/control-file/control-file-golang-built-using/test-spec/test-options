@@ -1,0 +1,3 @@
+Test-Against:
+ missing-built-using-field-for-golang-package
+Check: control-file

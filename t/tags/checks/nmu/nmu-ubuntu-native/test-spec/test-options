@@ -1,0 +1,4 @@
+Profile: ubuntu/main
+Test-Against: changelog-should-mention-nmu
+References: Debian Bug #507740
+Check: nmu

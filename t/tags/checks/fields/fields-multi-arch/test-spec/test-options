@@ -1,0 +1,4 @@
+Test-Against:
+ illegal-multi-arch-value
+ unknown-multi-arch-value
+Check: fields

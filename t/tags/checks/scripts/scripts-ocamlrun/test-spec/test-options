@@ -1,0 +1,3 @@
+Test-Against: missing-dep-for-interpreter
+References: Debian Bug#495431
+Check: scripts

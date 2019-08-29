@@ -1,0 +1,3 @@
+Test-Against:
+ udevadm-called-without-guard
+Check: scripts

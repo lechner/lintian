@@ -1,0 +1,3 @@
+Test-Against:
+ shlib-calls-exit
+Check: shared-libs

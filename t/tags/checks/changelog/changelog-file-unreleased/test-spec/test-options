@@ -1,0 +1,5 @@
+Test-Against:
+ latest-debian-changelog-entry-without-new-date
+ unreleased-changelog-distribution
+References: Debian Bug#560149
+Check: changelog

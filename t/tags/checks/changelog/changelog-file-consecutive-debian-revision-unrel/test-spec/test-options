@@ -1,0 +1,3 @@
+Options: --pedantic
+Test-Against: non-consecutive-debian-revision
+Check: changelog

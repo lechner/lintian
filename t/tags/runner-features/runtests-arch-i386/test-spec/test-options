@@ -1,0 +1,3 @@
+Test-Architectures: i386
+Match-Strategy: literal
+Output-Format: EWI

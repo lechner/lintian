@@ -1,0 +1,4 @@
+Options: --pedantic
+Test-Against:
+ omitted-systemd-service-for-init.d-script
+Check: systemd

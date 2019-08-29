@@ -1,0 +1,3 @@
+Test-Against:
+ source-only-upload-to-non-free-without-autobuild
+Check: control-file

@@ -1,0 +1,3 @@
+Test-Against:
+ alternatively-build-depends-on-python-sphinx-and-python3-sphinx
+Check: python

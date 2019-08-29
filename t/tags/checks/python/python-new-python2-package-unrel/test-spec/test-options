@@ -1,0 +1,3 @@
+Test-Against:
+ new-package-should-not-package-python2-module
+Check: python

@@ -1,0 +1,3 @@
+Test-Against:
+ files-excluded-without-copyright-format-1.0
+Check: source-copyright

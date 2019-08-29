@@ -1,0 +1,4 @@
+Options: --pedantic
+Test-Against:
+ missing-explanation-for-repacked-upstream-tarball
+Check: source-copyright

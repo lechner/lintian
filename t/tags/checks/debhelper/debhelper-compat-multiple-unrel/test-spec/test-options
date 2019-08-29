@@ -1,0 +1,3 @@
+Test-Against:
+ debhelper-compat-file-contains-multiple-levels
+Check: debhelper

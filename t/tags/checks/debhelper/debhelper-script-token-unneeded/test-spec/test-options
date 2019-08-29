@@ -1,0 +1,2 @@
+Test-Against: maintainer-script-lacks-debhelper-token
+Check: debhelper

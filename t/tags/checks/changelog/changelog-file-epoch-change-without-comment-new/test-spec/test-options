@@ -1,0 +1,4 @@
+Test-Against:
+ epoch-changed-but-upstream-version-did-not-go-backwards
+ latest-debian-changelog-entry-without-new-version
+Check: changelog

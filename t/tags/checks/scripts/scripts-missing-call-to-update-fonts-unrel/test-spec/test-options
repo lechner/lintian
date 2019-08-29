@@ -1,0 +1,3 @@
+Test-Against:
+ missing-call-to-update-fonts
+Check: scripts

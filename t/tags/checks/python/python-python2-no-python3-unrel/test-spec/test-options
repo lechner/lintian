@@ -1,0 +1,2 @@
+Test-Against: python-foo-but-no-python3-foo
+Check: python

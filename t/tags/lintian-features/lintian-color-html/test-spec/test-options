@@ -1,0 +1,3 @@
+Options: --color=html --show-overrides
+Match-Strategy: literal
+Output-Format: EWI

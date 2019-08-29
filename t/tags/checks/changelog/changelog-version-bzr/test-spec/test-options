@@ -1,0 +1,3 @@
+Test-Against:
+ debian-changelog-version-requires-debian-revision
+Check: changelog

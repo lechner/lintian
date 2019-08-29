@@ -1,0 +1,3 @@
+Test-Against:
+ orig-tarball-missing-upstream-signature
+Check: control-file

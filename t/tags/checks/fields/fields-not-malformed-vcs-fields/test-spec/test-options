@@ -1,0 +1,3 @@
+Test-Against:
+ vcs-field-uses-unknown-uri-format
+Check: fields

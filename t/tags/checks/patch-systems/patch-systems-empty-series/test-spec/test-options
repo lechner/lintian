@@ -1,0 +1,3 @@
+Test-Against: quilt-build-dep-but-no-series-file
+References: Debian Bug #525005
+Check: patch-systems

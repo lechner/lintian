@@ -1,0 +1,4 @@
+Test-Against:
+    new-essential-package
+    essential-in-source-package
+Check: fields

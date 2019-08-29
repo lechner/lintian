@@ -1,0 +1,3 @@
+Test-Against:
+ bugs-field-does-not-refer-to-debian-infrastructure
+Check: fields

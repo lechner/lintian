@@ -1,0 +1,3 @@
+Options: --pedantic
+References: Debian Bug#540594, Debian Bug#551793
+Check: fields

@@ -1,0 +1,3 @@
+Test-Against:
+ missing-build-dependency-for-dh-addon
+Check: debhelper

@@ -1,0 +1,3 @@
+Test-Depends:
+ dh-runit
+Check: debhelper

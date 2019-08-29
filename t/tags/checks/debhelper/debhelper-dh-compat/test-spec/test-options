@@ -1,0 +1,3 @@
+Profile: lintian-test
+Options: --include-dir ./lintian-include-dir
+Check: debhelper

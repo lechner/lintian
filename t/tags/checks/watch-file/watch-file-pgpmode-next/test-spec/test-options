@@ -1,0 +1,4 @@
+Options: --pedantic
+Test-Against: debian-watch-does-not-check-gpg-signature
+References: #841000
+Check: watch-file

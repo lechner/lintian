@@ -1,0 +1,4 @@
+# To avoid NMU warnings / having a changelog.in
+Test-Against:
+ uploader-address-causes-mail-loops-or-bounces
+Check: fields

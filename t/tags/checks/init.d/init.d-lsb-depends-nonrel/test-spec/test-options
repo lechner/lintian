@@ -1,0 +1,3 @@
+Test-Against:
+ init.d-script-needs-depends-on-lsb-base
+Check: init.d

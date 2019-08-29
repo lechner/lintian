@@ -1,0 +1,2 @@
+Test-Against: arch-dep-package-has-big-usr-share
+Check: huge-usr-share

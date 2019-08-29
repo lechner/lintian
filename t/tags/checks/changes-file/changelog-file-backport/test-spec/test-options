@@ -1,0 +1,7 @@
+Options: --include-dir ./lintian-include-dir --pedantic
+# Overrides the "data/changes-file/known-dists"
+# data file to avoid updating the test every release
+Profile: lintian-test
+Test-Against:
+ upload-has-backports-version-number
+Check: changes-file

@@ -1,0 +1,3 @@
+Test-Architectures: i386 armhf
+Test-Against: wrong-section-according-to-package-name
+Check: fields

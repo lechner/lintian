@@ -1,0 +1,5 @@
+Test-Against:
+ debian-changelog-version-requires-debian-revision
+ hyphen-in-native-debian-changelog-version
+ malformed-debian-changelog-version
+Check: changelog

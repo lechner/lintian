@@ -1,0 +1,3 @@
+Test-Against: ancient-libtool
+References: Debian Bug#534134
+Check: cruft

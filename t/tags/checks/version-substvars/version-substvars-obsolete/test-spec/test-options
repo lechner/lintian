@@ -1,0 +1,3 @@
+Options: --pedantic
+# dpkg 1.18.11 Will error out for ${source-version}
+Check: version-substvars

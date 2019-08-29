@@ -1,0 +1,2 @@
+Test-Against: dev-pkg-without-shlib-symlink
+Check: shared-libs

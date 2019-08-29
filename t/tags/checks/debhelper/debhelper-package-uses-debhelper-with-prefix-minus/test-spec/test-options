@@ -1,0 +1,4 @@
+Options: --pedantic
+Test-Against:
+ package-does-not-use-debhelper-or-cdbs
+Check: debhelper

@@ -1,0 +1,5 @@
+Skeleton: upload-native
+Testname: version-substvars-obsolete
+Description: Test of substvars
+# dpkg 1.18.11 Will error out for ${source-version}
+Extra-Build-Depends: dpkg (<< 1.17.2)

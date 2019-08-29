@@ -1,0 +1,3 @@
+Test-Against:
+ python-script-but-no-python-dep
+Check: scripts

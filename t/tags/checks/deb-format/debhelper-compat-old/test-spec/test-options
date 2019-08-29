@@ -1,0 +1,3 @@
+Options: --include-dir ./lintian-include-dir --pedantic --display-level +classification
+Profile: lintian-test
+Check: deb-format

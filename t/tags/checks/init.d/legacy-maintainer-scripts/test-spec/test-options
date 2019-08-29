@@ -1,0 +1,2 @@
+Test-Against: init.d-script-not-marked-as-conffile
+Check: init.d

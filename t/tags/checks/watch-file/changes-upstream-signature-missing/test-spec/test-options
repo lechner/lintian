@@ -1,0 +1,2 @@
+# dpkg 1.18.5 required in order to create multiple tarballs with detached signatures
+Check: watch-file

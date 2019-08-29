@@ -1,0 +1,3 @@
+Test-Against:
+ r-data-without-readme-source
+Check: cruft

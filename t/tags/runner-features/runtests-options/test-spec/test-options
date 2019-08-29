@@ -1,0 +1,3 @@
+Check: standards-version
+Match-Strategy: literal
+Output-Format: EWI

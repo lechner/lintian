@@ -1,0 +1,5 @@
+Skeleton: upload-native
+Testname: debhelper-no-depends
+Dh-Compat-Level: 9
+# Overrides the "data/debhelper/compat-level"
+Description: Test dependency requirements for debhelper

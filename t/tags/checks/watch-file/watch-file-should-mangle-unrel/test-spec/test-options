@@ -1,0 +1,3 @@
+Test-Against:
+ debian-watch-file-should-mangle-version
+Check: watch-file

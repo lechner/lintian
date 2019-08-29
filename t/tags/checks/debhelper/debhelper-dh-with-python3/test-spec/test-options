@@ -1,0 +1,2 @@
+Test-Depends: dh-python
+Check: debhelper

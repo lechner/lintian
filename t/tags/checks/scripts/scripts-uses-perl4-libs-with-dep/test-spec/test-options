@@ -1,0 +1,2 @@
+Test-Against: script-uses-perl4-libs-without-dep
+Check: scripts

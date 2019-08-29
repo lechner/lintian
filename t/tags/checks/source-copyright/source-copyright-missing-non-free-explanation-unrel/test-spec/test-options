@@ -1,0 +1,3 @@
+Test-Against:
+ missing-explanation-for-contrib-or-non-free-package
+Check: source-copyright

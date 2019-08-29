@@ -1,0 +1,4 @@
+Test-Against:
+ missing-build-dependency-for-dh_-command
+ useless-autoreconf-build-depends
+Check: debhelper

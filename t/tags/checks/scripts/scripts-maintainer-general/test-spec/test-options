@@ -1,0 +1,3 @@
+Profile: ubuntu/main
+References: Debian Bug#532984
+Check: scripts

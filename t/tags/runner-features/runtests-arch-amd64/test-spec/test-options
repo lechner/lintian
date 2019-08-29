@@ -1,0 +1,3 @@
+Test-Architectures: amd64
+Match-Strategy: literal
+Output-Format: EWI

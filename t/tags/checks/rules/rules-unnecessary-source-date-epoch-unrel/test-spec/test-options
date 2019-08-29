@@ -1,0 +1,3 @@
+Test-Against:
+ unnecessary-source-date-epoch-assignment
+Check: rules

@@ -1,0 +1,3 @@
+Test-Against: shlib-missing-in-control-file
+References: Debian Bug#506673
+Check: shared-libs
