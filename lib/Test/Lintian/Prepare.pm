@@ -55,7 +55,6 @@ use Cwd qw(getcwd);
 use File::Copy;
 use File::Find::Rule;
 use File::Path qw(make_path remove_tree);
-use File::Spec::Functions qw(abs2rel rel2abs splitpath splitdir catpath);
 use File::stat;
 use List::Util qw(max);
 use Path::Tiny;
@@ -136,18 +135,18 @@ sub logged_prepare {
     return;
 }
 
-=item prepare(SPEC_PATH, RUN_PATH, TEST_SET, REBUILD)
+=item prepare(SPEC_PATH, SOURCE_PATH, TEST_SET, REBUILD)
 
-Populates a work directory RUN_PATH with data from the test located
+Populates a work directory SOURCE_PATH with data from the test located
 in SPEC_PATH. The optional parameter REBUILD forces a rebuild if true.
 
 =cut
 
 sub prepare {
-    my ($specpath, $runpath, $testset, $force_rebuild)= @_;
+    my ($specpath, $sourcepath, $testset, $force_rebuild)= @_;
 
     say '------- Preparation starts here -------';
-    say "Work directory is $runpath.";
+    say "Work directory is $sourcepath.";
 
     # for template fill, earliest date without timewarp warning
     my $data_epoch = max($ENV{HARNESS_EPOCH}//time,$ENV{'POLICY_EPOCH'}//time);
@@ -182,14 +181,14 @@ sub prepare {
     die 'Outdated test specification (./debian/debian exists).'
       if -e "$specpath/debian/debian";
 
-    if (-d $runpath) {
+    if (-d $sourcepath) {
 
         # check for old build artifacts
-        my $buildstamp = "$runpath/build-stamp";
+        my $buildstamp = "$sourcepath/build-stamp";
         say 'Found old build artifact.' if -f $buildstamp;
 
         # check for old debian/debian directory
-        my $olddebiandir = "$runpath/debian/debian";
+        my $olddebiandir = "$sourcepath/debian/debian";
         say 'Found old debian/debian directory.' if -e $olddebiandir;
 
         # check for rebuild demand
@@ -197,19 +196,19 @@ sub prepare {
 
         # delete work directory
         if($force_rebuild || -f $buildstamp || -e $olddebiandir) {
-            say "Removing work directory $runpath.";
-            remove_tree($runpath);
+            say "Removing work directory $sourcepath.";
+            remove_tree($sourcepath);
         }
     }
 
     # create work directory
-    unless (-d $runpath) {
-        say "Creating directory $runpath.";
-        make_path($runpath);
+    unless (-d $sourcepath) {
+        say "Creating directory $sourcepath.";
+        make_path($sourcepath);
     }
 
     # delete old test scripts
-    my @oldrunners = File::Find::Rule->file->name('*.t')->in($runpath);
+    my @oldrunners = File::Find::Rule->file->name('*.t')->in($sourcepath);
     unlink(@oldrunners);
 
     my $skeletonname = ($desc->{skeleton} // EMPTY);
@@ -223,22 +222,22 @@ sub prepare {
     }
 
     # populate working directory with specified template sets
-    copy_skeleton_template_sets($testcase->{template_sets},$runpath, $testset)
+    copy_skeleton_template_sets($testcase->{template_sets},$sourcepath, $testset)
       if exists $testcase->{template_sets};
 
     # delete templates for which we have originals
-    remove_surplus_templates($specpath, $runpath);
+    remove_surplus_templates($specpath, $sourcepath);
 
     # copy test specification to working directory
-    my $offset = abs2rel($specpath, $testset);
-    say "Copy test specification $offset from $testset to $runpath.";
-    copy_dir_contents($specpath, $runpath);
+    my $offset = path($specpath)->relative($testset)->stringify;
+    say "Copy test specification $offset from $testset to $sourcepath.";
+    copy_dir_contents($specpath, $sourcepath);
 
     my $valuefolder = ($testcase->{fill_values_folder} // EMPTY);
     if (length $valuefolder) {
 
         # load all the values in the fill values folder
-        my $valuepath = "$runpath/$valuefolder";
+        my $valuepath = "$sourcepath/$valuefolder";
         my @filepaths
           = File::Find::Rule->file->name('*.values')->in($valuepath);
 
@@ -254,6 +253,9 @@ sub prepare {
 
     # record path to specification
     $testcase->{spec_path} = $specpath;
+
+    # record path to specification
+    $testcase->{source_path} = $sourcepath;
 
     # add other helpful info to testcase
     $testcase->{source} ||= $testcase->{testname};
@@ -312,23 +314,18 @@ sub prepare {
 
     # fill remaining templates
     fill_skeleton_templates($testcase->{fill_targets},
-        $testcase, $data_epoch, $runpath, $testset)
+        $testcase, $data_epoch, $sourcepath, $testset)
       if exists $testcase->{fill_targets};
 
-    # make sure we installed a runner
-    my $runnerpath = "$runpath/$testcase->{runner}";
-    die "No runner found at $runnerpath"
-      unless -f $runnerpath;
-
     # write the dynamic file names
-    my $runfiles = path($runpath)->child('files');
+    my $runfiles = path($sourcepath)->child('files');
     write_config($files, $runfiles->stringify);
 
     # set mtime for dynamic file names
     $runfiles->touch($data_epoch);
 
     # write the dynamic test case file
-    my $rundesc = path($runpath)->child($files->{test_specification});
+    my $rundesc = path($sourcepath)->child($files->{test_specification});
     write_config($testcase, $rundesc->stringify);
 
     # set mtime for dynamic test data
