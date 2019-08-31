@@ -1,0 +1,10 @@
+Check: all
+Fill-Values-Folder: fill-values.d
+Runner: generic.t
+Profile: debian
+Output-Format: universal
+Skeleton: testing
+Match-Strategy: tags
+Default-Lintian-Options: --display-info --display-experimental --check-part {$check}
+Todo: no
+Test-Architectures: any

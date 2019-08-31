@@ -1,6 +1,5 @@
 Description: No Description Available
 Author: Debian Lintian Maintainers <lintian-maint@debian.org>
-Check: all
 Section: devel
 Priority: optional
 Distribution: unstable
@@ -9,10 +8,3 @@ Fill-Values-Folder: fill-values.d
 Rules-Requires-Root: no
 Homepage: https://lintian.debian.org/
 Prev-Date: Mon, 01 Jan 1990 00:00:00 +0100
-Runner: generic.t
-Profile: debian
-Output-Format: universal
-Match-Strategy: tags
-Default-Lintian-Options: --display-info --display-experimental --check-part {$check}
-Todo: no
-Test-Architectures: any
