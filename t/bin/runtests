@@ -336,6 +336,22 @@ my @testpaths = find_selected_lintian_testpaths($testset, $onlyrun);
 # remap paths from testset to outpath to get work directories
 my @workpaths = map { rel2abs(abs2rel($_, $testset), $outpath) } @testpaths;
 
+# make sure we installed a runner
+#    my $runnerpath = "$sourcepath/$testcase->{runner}";
+#    die "No runner found at $runnerpath"
+#      unless -f $runnerpath;
+
+    # if ($platforms ne 'any') {
+    #     my @wildcards = split(SPACE, $platforms);
+    #     my @matches= map {
+    #         qx{dpkg-architecture -a $ENV{'DEB_HOST_ARCH'} -i $_; echo -n \$?}
+    #     } @wildcards;
+    #     unless (any { $_ == 0 } @matches) {
+    #         say 'Architecture mismatch';
+    #         return;
+    #     }
+    # }
+
 # make all paths relative to current directory
 @workpaths = map { abs2rel($_) } @workpaths;
 
