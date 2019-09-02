@@ -26,7 +26,6 @@
 # the test suite layout and naming conventions, see t/tests/README.
 # For more information about running tests, see
 # doc/tutorial/Lintian/Tutorial/TestSuite.pod
-#
 
 use strict;
 use warnings;
@@ -37,7 +36,6 @@ use Capture::Tiny qw(capture_merged);
 use Cwd;
 use File::Copy;
 use File::Find::Rule;
-use File::Path qw(make_path);
 use File::stat;
 use Getopt::Long;
 use IO::Async::Function;
@@ -77,7 +75,7 @@ use Test::Lintian::ConfigFile qw(read_config);
 use Test::Lintian::Helper
   qw(rfc822date cache_dpkg_architecture_values get_latest_policy get_recommended_debhelper_version);
 use Test::Lintian::Hooks qw(run_lintian sed_hook sort_lines calibrate);
-use Test::Lintian::Prepare qw(logged_prepare early_logpath);
+use Test::Lintian::Prepare qw(prepare);
 
 use constant SPACE => q{ };
 use constant INDENT => q{    };
@@ -131,7 +129,7 @@ $testset = path($testset)->absolute->stringify;
 $outpath ||= path($testset)->parent->stringify . '/debian/test-out';
 
 # create test work directory unless it exists
-make_path($outpath)
+path($outpath)->mk_path
   unless -e $outpath;
 
 # make sure test work path is a directory
@@ -204,33 +202,51 @@ my @prepqueue = map { path($_)->relative->stringify } @specpaths;
 # for filled templates
 my $sourceroot = "$outpath/package-sources";
 
+# for built test packages
+my $buildroot = "$outpath/packages";
+
 my $prepare = IO::Async::Function->new(
     code => sub {
         my ($specpath) = @_;
 
-        # get destination
-        my $sourcepath
-          = path($specpath)->parent->relative($testset)->absolute($sourceroot)
-          ->stringify;
-
         # label process
         $0 = "Lintian prepare test: $specpath";
 
-        try {
-            # prepare
-            path($sourcepath)->remove_tree
-              if -d $sourcepath;
-            logged_prepare($specpath, $sourcepath, $testset,$force_rebuild);
-        }catch {
-            # catch any error
-            my $error = $_;
+        # calculate destination
+        my $sourcepath
+          = path($specpath)->parent->relative($testset)->absolute($sourceroot)
+          ->stringify;
+        my $buildpath
+          = path($specpath)->parent->relative($testset)->absolute($buildroot)
+          ->relative->stringify;
 
-            my $message = "Preparation failed for $specpath";
-            $message .= ": $error" if length $error;
+        my $error;
 
-          # print log and warn on error (do not die; will mess up Ia::Function)
-            die $message;
+        # capture output
+        my $log = capture_merged {
+
+            try {
+
+                # remove destination
+                path($sourcepath)->remove_tree
+                  if -e $sourcepath;
+
+                # prepare
+                prepare($specpath, $sourcepath, $testset, $force_rebuild);
+
+            }catch {
+                # catch any error
+                $error = $_;
+            };
         };
+
+        # save log;
+        my $logfile = "$sourcepath.log";
+        path($logfile)->spew_utf8($log) if $log;
+
+        # print something if there was an error
+        die (($log // EMPTY) . "Preparation failed for $specpath: $error")
+          if $error;
 
         return $specpath;
     },
@@ -259,9 +275,6 @@ if (@failedprep) {
 }
 
 say EMPTY;
-
-# for built test packges
-my $buildroot = "$outpath/packages";
 
 my $build = IO::Async::Function->new(
     code => sub {
@@ -304,11 +317,10 @@ my $build = IO::Async::Function->new(
         my $runfiles = "$sourcepath/files";
         my $files = read_config($runfiles);
 
-        # set path to logfile
-        my $betterlogpath = "$buildpath/$files->{log}";
-
         my $error;
+
         my $log = capture_merged {
+
             try {
                 # call runner
                 build_subject($sourcepath, $buildpath);
@@ -319,10 +331,11 @@ my $build = IO::Async::Function->new(
         };
 
         # delete old runner log
+        my $betterlogpath = "$buildpath/$files->{log}";
         unlink $betterlogpath if -f $betterlogpath;
 
        # move the early log for directory preparation to position of runner log
-        my $earlylogpath = early_logpath($sourcepath);
+        my $earlylogpath = "$sourcepath.log";
         move($earlylogpath, $betterlogpath) if -f $earlylogpath;
 
         # append runner log to population log
@@ -334,13 +347,8 @@ my $build = IO::Async::Function->new(
         path($checksum_path)->spew($sha1sums)
           unless length $error;
 
-        #        $log = path($betterlogpath)->slurp;
-
-#        warn $log
-#          if length $error;
-
         # print log and die on error
-        warn (($log // EMPTY) . "Builder died for $buildpath: $error")
+        die (($log // EMPTY) . "Builder died for $buildpath: $error")
           if length $error;
 
         return $specpath;
@@ -355,7 +363,8 @@ $SIG{INT} = sub { $build->stop; die "Caught a sigint $!" };
 my @buildtasks = map {$build->call(args => [$_])} sort @specpaths;
 
 my $allbuilt = Future->wait_all(@buildtasks);
-$allbuilt->get;
+
+$loop->await($allbuilt);
 
 my @failedbuilds = $allbuilt->failed_futures;
 if (@failedbuilds) {
@@ -364,7 +373,7 @@ if (@failedbuilds) {
     say NEWLINE . $_->failure for @failedbuilds;
     exit 1;
 } else {
-    say 'All necessary build tasks completed with success.';
+    say 'All scheduled build tasks completed with success.';
 }
 
 say EMPTY;
