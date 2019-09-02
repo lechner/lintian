@@ -42,8 +42,6 @@ use Exporter qw(import);
 
 BEGIN {
     our @EXPORT_OK = qw(
-      early_logpath
-      logged_prepare
       prepare
     );
 }
@@ -71,69 +69,9 @@ use constant SPACE => q{ };
 use constant COMMA => q{,};
 use constant NEWLINE => qq{\n};
 
-my $EARLY_LOG_SUFFIX = 'log';
-
 =head1 FUNCTIONS
 
 =over 4
-
-=item early_logpath(RUN_PATH)
-
-Return the path of the early log for the work directory RUN_PATH.
-
-=cut
-
-sub early_logpath {
-    my ($runpath)= @_;
-
-    return "$runpath.$EARLY_LOG_SUFFIX";
-}
-
-=item logged_prepare(SPEC_PATH, RUN_PATH, TEST_SET, REBUILD)
-
-Prepares the work directory RUN_PATH for the test specified in
-SPEC_PATH. The optional parameter REBUILD forces a rebuild if true.
-
-Captures all output and places it in a file near the work directory.
-The log can be used as a starting point by the runner after copying
-it to a final location.
-
-=cut
-
-sub logged_prepare {
-    my ($specpath, $runpath, $testset, $force_rebuild)= @_;
-
-    my $log;
-    my $error;
-
-    # capture output
-    $log = capture_merged {
-
-        try {
-            # prepare
-            prepare($specpath, $runpath, $testset, $force_rebuild);
-        }catch {
-            # catch any error
-            $error = $_;
-        };
-    };
-
-    # save log;
-    if (defined $runpath) {
-        my $logfile = early_logpath($runpath);
-        path($logfile)->spew_utf8($log) if $log;
-    }
-
-    # print something if there was an error
-    if ($error) {
-        my $message;
-        $message = NEWLINE . $log if length $log;
-        $message .= $error;
-        die $message;
-    }
-
-    return;
-}
 
 =item prepare(SPEC_PATH, SOURCE_PATH, TEST_SET, REBUILD)
 
