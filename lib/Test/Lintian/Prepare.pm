@@ -149,7 +149,7 @@ sub prepare {
     say "Work directory is $sourcepath.";
 
     # for template fill, earliest date without timewarp warning
-    my $data_epoch = max($ENV{HARNESS_EPOCH}//time,$ENV{'POLICY_EPOCH'}//time);
+    my $data_epoch = $ENV{'POLICY_EPOCH'}//time;
 
     # read defaults
     my $defaultspath = "$testset/defaults";
@@ -160,17 +160,17 @@ sub prepare {
 
     # read file and adjust data age threshold
     my $files = read_config($defaultfilespath);
-    $data_epoch= max($data_epoch, stat($defaultfilespath)->mtime);
+#    $data_epoch= max($data_epoch, stat($defaultfilespath)->mtime);
 
     # read test data
     my $descpath = "$specpath/$files->{test_specification}";
     my $desc = read_config($descpath);
-    $data_epoch= max($data_epoch, stat($descpath)->mtime);
+#    $data_epoch= max($data_epoch, stat($descpath)->mtime);
 
     # read test defaults
     my $descdefaultspath = "$defaultspath/$files->{test_specification}";
     my $defaults = read_config($descdefaultspath);
-    $data_epoch= max($data_epoch, stat($descdefaultspath)->mtime);
+#    $data_epoch= max($data_epoch, stat($descdefaultspath)->mtime);
 
     # start with a shallow copy of defaults
     my $testcase = {%$defaults};
