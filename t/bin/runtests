@@ -26,18 +26,14 @@
 # the test suite layout and naming conventions, see t/tests/README.
 # For more information about running tests, see
 # doc/tutorial/Lintian/Tutorial/TestSuite.pod
-#
 
 use strict;
 use warnings;
 use autodie;
 use v5.10;
 
-use Capture::Tiny qw(capture);
+use Capture::Tiny qw(capture capture_merged);
 use Cwd;
-use File::Basename;
-use File::Path qw(make_path);
-use File::Spec::Functions qw(abs2rel rel2abs splitpath splitdir);
 use File::stat;
 use Getopt::Long;
 use List::MoreUtils qw(any uniq);
@@ -98,7 +94,7 @@ use Test::Lintian::Filter
   qw(find_selected_scripts find_selected_lintian_testpaths);
 use Test::Lintian::Helper
   qw(rfc822date cache_dpkg_architecture_values get_latest_policy get_recommended_debhelper_version);
-use Test::Lintian::Prepare qw(logged_prepare);
+use Test::Lintian::Prepare qw(prepare);
 use Test::Lintian::Run qw(logged_runner);
 use Test::ScriptAge qw(perl_modification_epoch our_modification_epoch);
 
@@ -157,13 +153,13 @@ die "Cannot find testset directory $testset"
   unless -d $testset;
 
 # make sure testset is an absolute path
-$testset = rel2abs($testset);
+$testset = path($testset)->absolute->stringify;
 
 # calculate a default test work directory if none given
-$outpath ||= dirname($testset) . '/debian/test-out';
+$outpath ||= path($testset)->parent->stringify . '/debian/test-out';
 
 # create test work directory unless it exists
-make_path($outpath)
+path($outpath)->mkpath
   unless -e $outpath;
 
 # make sure test work path is a directory
@@ -171,7 +167,7 @@ die "Test work directory $outpath is not a directory"
   unless -d $outpath;
 
 # make sure outpath is absolute
-$outpath = rel2abs($outpath);
+$outpath = path($outpath)->absolute->stringify;
 
 my $ACTIVE_JOBS = 0;
 
@@ -239,7 +235,7 @@ $ENV{'DPKG_NLS'} = 0;
 
 my $helperpath = "$testset/bin";
 if (-d $helperpath) {
-    my $helpers = rel2abs($helperpath)// die("Cannot resolve $helperpath: $!");
+    my $helpers = path($helperpath)->absolute->stringify // die("Cannot resolve $helperpath: $!");
     $ENV{'PATH'} = "$helpers:$ENV{'PATH'}";
 }
 
@@ -275,6 +271,86 @@ say EMPTY;
 my @vars = sort keys %ENV;
 say 'Environment:' if @vars;
 for my $var (@vars) { say INDENT . "$var=$ENV{$var}" }
+
+say EMPTY;
+
+# find test paths
+my @combinedqueue = sort map { path($_)->parent->stringify } find_selected_lintian_testpaths($testset, $onlyrun);
+
+# for filled templates
+my $workroot = "$outpath/tests";
+
+my $prepare_test = IO::Async::Function->new(
+    code => sub {
+        my ($combinedpath) = @_;
+
+        # label process
+        $0 = "Lintian prep test: $combinedpath";
+
+        # calculate destination
+        my $workpath
+          = path($combinedpath)->relative($testset)->absolute($workroot)
+          ->stringify;
+
+        my $error;
+
+        # capture output
+        my $log = capture_merged {
+
+            try {
+
+                # remove destination
+                path($workpath)->remove_tree
+                  if -e $workpath;
+
+                path($workpath)->mkpath;
+
+                # prepare
+#                my $build_spec_path = path($combinedpath)->child('test-spec')->stringify;
+#                prepare($build_spec_path, $workpath, $testset, 1);
+
+            }catch {
+                # catch any error
+                $error = $_;
+            };
+        };
+
+        # save log;
+        my $logfile = "$workpath/log";
+ #       path($logfile)->spew($log // EMPTY);
+ #       path($logfile)->append($error // EMPTY);
+
+        die "Prep $workpath";
+
+        # print something if there was an error
+        die (($log // EMPTY) . "Prep test failed for $combinedpath: $error")
+          if $error;
+
+        return $combinedpath;
+    },
+    max_workers => $numjobs,
+    max_worker_calls => 1,
+);
+
+my $loop = IO::Async::Loop->new;
+$loop->add($prepare_test);
+
+$SIG{INT} = sub { $prepare_test->stop; die "Caught a sigint $!" };
+my @testpreptasks = map {$prepare_test->call(args => [$_])} @combinedqueue;
+
+my $all_tests_prepped = Future->wait_all(@testpreptasks);
+
+$loop->await($all_tests_prepped);
+
+my @failedtestprep = $all_tests_prepped->failed_futures;
+if (@failedtestprep) {
+    say EMPTY;
+    say 'Failed test prep tasks:';
+    say NEWLINE . $_->failure for @failedtestprep;
+    exit 1;
+} else {
+    say 'All test prep tasks completed with success.';
+}
 
 say EMPTY;
 
@@ -314,7 +390,7 @@ push(@runscripts, @requiredscripts);
 @runscripts = uniq @runscripts;
 
 # make all paths relative
-@runscripts = map { abs2rel($_) } @runscripts;
+@runscripts = map { path($_)->relative->stringify } @runscripts;
 
 say 'Running selected and required Perl test scripts.';
 say EMPTY;
@@ -330,11 +406,8 @@ unless ($aggregator->all_passed || $keep_going) {
 
 say EMPTY;
 
-# find test paths
-my @testpaths = find_selected_lintian_testpaths($testset, $onlyrun);
-
 # remap paths from testset to outpath to get work directories
-my @workpaths = map { rel2abs(abs2rel($_, $testset), $outpath) } @testpaths;
+my @workpaths = map { path($_)->relative($testset)->absolute($workroot)->stringify } @combinedqueue;
 
 # make sure we installed a runner
 #    my $runnerpath = "$sourcepath/$testcase->{runner}";
@@ -353,7 +426,7 @@ my @workpaths = map { rel2abs(abs2rel($_, $testset), $outpath) } @testpaths;
     # }
 
 # make all paths relative to current directory
-@workpaths = map { abs2rel($_) } @workpaths;
+@workpaths = map { path($_)->relative->stringify } @workpaths;
 
 # add the scripts in generated tests to be run
 my @workscripts
@@ -378,7 +451,7 @@ if (-t STDOUT && !$unattended) {
     my $accept_all;
 
     for my $scriptpath (@failed) {
-        my $workpath = dirname($scriptpath);
+        my $workpath = path($scriptpath)->parent->stringify;
 
         my $descpath = "$workpath/desc";
         my $testcase = read_config($descpath);
@@ -387,8 +460,7 @@ if (-t STDOUT && !$unattended) {
         next
           unless $testcase->{match_strategy} eq 'tags';
 
-        my $relative = abs2rel($workpath, $outpath);
-        my $testpath = abs2rel(rel2abs($relative, $testset));
+        my $testpath = path($workpath)->relative($outpath)->absolute($testset)->relative->stringify;
 
         my $diffpath = "$workpath/tagdiff";
         if (-r $diffpath) {
@@ -440,8 +512,8 @@ if (-t STDOUT && !$unattended) {
       if @crashed;
 
     for my $absolutepath (@crashed) {
-        my $scriptpath = abs2rel($absolutepath);
-        my $workpath = dirname($scriptpath);
+        my $scriptpath = path($absolutepath)->relative->stringify;
+        my $workpath = path($scriptpath)->parent->stringify;
 
         say EMPTY;
         say "Log for test $scriptpath:";
@@ -465,7 +537,7 @@ exit $status;
 
 sub usage {
     print <<"END";
-Usage: $0 [options] [-j [<jobs>]] <testset-directory>
+Usage: $0 [options] [-j [<jobs>]] <testset-dirtory>
 
     --onlyrun   Select only some tests for a quick check
     --coverage  Run Lintian under Devel::Cover (Warning: painfully slow)

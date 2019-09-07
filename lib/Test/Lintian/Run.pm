@@ -71,7 +71,6 @@ use Test::Lintian::ConfigFile qw(read_config);
 use Test::Lintian::Helper qw(rfc822date);
 use Test::Lintian::Hooks
   qw(find_missing_prerequisites run_lintian sed_hook sort_lines calibrate);
-use Test::Lintian::Prepare qw(early_logpath);
 use Test::Lintian::Output::Universal qw(get_tagnames order);
 
 use constant SPACE => q{ };
@@ -106,7 +105,7 @@ sub logged_runner {
     my $files = read_config($runfiles);
 
     # set path to logfile
-    my $betterlogpath = "$runpath/$files->{log}";
+    my $betterlogpath = "$runpath/log.test";
 
     my $log = capture_merged {
         try {
@@ -123,8 +122,8 @@ sub logged_runner {
     unlink $betterlogpath if -f $betterlogpath;
 
     # move the early log for directory preparation to position of runner log
-    my $earlylogpath = early_logpath($runpath);
-    move($earlylogpath, $betterlogpath) if -f $earlylogpath;
+#    my $earlylogpath = early_logpath($runpath);
+#    move($earlylogpath, $betterlogpath) if -f $earlylogpath;
 
     # append runner log to population log
     path($betterlogpath)->append_utf8($log) if length $log;

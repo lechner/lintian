@@ -129,7 +129,7 @@ $testset = path($testset)->absolute->stringify;
 $outpath ||= path($testset)->parent->stringify . '/debian/test-out';
 
 # create test work directory unless it exists
-path($outpath)->mk_path
+path($outpath)->mkpath
   unless -e $outpath;
 
 # make sure test work path is a directory
