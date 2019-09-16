@@ -553,7 +553,7 @@ sub read_dpkg_control {
     my @data = parse_dpkg_control($CONTROL, $flags, $lines);
     close($CONTROL);
 
-    return @data;
+    return clean_fields(@data);
 }
 
 sub read_dpkg_control_utf8 {
@@ -563,7 +563,33 @@ sub read_dpkg_control_utf8 {
     my @data = parse_dpkg_control($CONTROL, $flags, $lines);
     close($CONTROL);
 
-    return @data;
+    return clean_fields(@data);
+}
+
+sub clean_fields {
+    my @dirty = @_;
+
+    my @clean;
+
+    foreach my $paragraphref (@dirty) {
+        my %paragraph = %{$paragraphref};
+
+        foreach my $field (keys %paragraph) {
+
+            # unwrap continuation lines
+            $paragraph{$field} =~ s/\n/ /g;
+
+            # trim both ends
+            $paragraph{$field} =~ s/^\s+|\s+$//g;
+
+            # reduce multiple spaces to one
+            $paragraph{$field} =~ s/\s+/ /g;
+        }
+
+        push(@clean, \%paragraph);
+    }
+
+    return @clean;
 }
 
 =back

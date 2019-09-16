@@ -35,6 +35,8 @@ use Lintian::Deb822Parser qw(read_dpkg_control_utf8);
 use Lintian::Tags;
 use Lintian::Util qw(parse_boolean strip);
 
+use constant SPACE => q{ };
+
 =head1 NAME
 
 Lintian::Profile - Profile parser for Lintian
@@ -427,7 +429,7 @@ sub _read_profile {
 # error reporting).
 sub _read_profile_section {
     my ($self, $pname, $section, $sno) = @_;
-    my @tags = $self->_split_comma_sep_field($section->{'tags'});
+    my @tags = split(SPACE, $section->{'tags'});
     my $overridable
       = $self->_parse_boolean($section->{'overridable'}, -1, $pname, $sno);
     my $severity = $section->{'severity'}//'';
@@ -498,14 +500,13 @@ sub _read_profile_tags{
     my $tag_sub = sub {
         my ($field, $tag) = @_;
         unless (exists $self->{'known-tags'}{$tag}) {
-            croak "Unknown tag \"$tag\" in profile \"$pname\""
+            die "Unknown tag \"$tag\" in profile \"$pname\""
               unless exists $self->{'known-tags'}{$tag};
         }
         return $tag;
     };
     if ($pheader->{'load-checks'}) {
-        for
-          my $check ($self->_split_comma_sep_field($pheader->{'load-checks'})){
+        for my $check (split(SPACE, $pheader->{'load-checks'})){
             $self->_load_check($pname, $check)
               unless exists $self->{'check-scripts'}{$check};
         }
@@ -533,7 +534,7 @@ sub _enable_tags_from_field {
     $method = \&disable_tags unless $enable;
     return unless $pheader->{$field};
     @tags = map { $code->($field, $_) }
-      $self->_split_comma_sep_field($pheader->{$field});
+      split(SPACE, $pheader->{$field});
     $self->$method(@tags);
     return;
 }
@@ -584,16 +585,6 @@ sub _parse_boolean {
     croak "\"$bool\" is not a boolean value in $pname (section $sno)"
       if $@;
     return $val;
-}
-
-# $self->_split_comma_sep_field($data)
-#
-# Split $data as a comma-separated list of items (whitespace will
-# be ignored).
-sub _split_comma_sep_field {
-    my ($self, $data) = @_;
-    return () unless defined $data;
-    return split m/\s*,\s*/o, strip($data);
 }
 
 # $self->_check_for_invalid_fields($para, $known, $pname, $paraname)
