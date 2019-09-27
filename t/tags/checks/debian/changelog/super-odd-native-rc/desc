@@ -1,0 +1,10 @@
+Testname: super-odd-native-rc
+Version: 3.5~+rc1
+Prev-Version: 3.5
+Description: Test for super unusual native release candidate
+Skeleton: upload-native
+Check: debian/changelog
+Test-Against:
+ changelog-file-missing-explicit-entry
+ rc-version-greater-than-expected-version
+Ref: #755785

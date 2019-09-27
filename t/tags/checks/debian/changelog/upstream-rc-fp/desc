@@ -1,0 +1,10 @@
+Testname: upstream-rc-fp
+Version: 4.4+dev-1
+Prev-Version: 4.4-1
+Description: Test for false positive on unusual upstream release candidate
+Skeleton: upload-non-native
+Check: debian/changelog
+Test-Against:
+ changelog-file-missing-explicit-entry
+ rc-version-greater-than-expected-version
+Ref: #782717

@@ -1,0 +1,2 @@
+super-odd-native-rc (source): rc-version-greater-than-expected-version 3.5~+rc1 > 3.5~ (consider using 3.5~~rc)
+super-odd-native-rc (source): latest-debian-changelog-entry-without-new-version
