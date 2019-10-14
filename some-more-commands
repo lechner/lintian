@@ -1,0 +1,500 @@
+ 2533  t/bin/runtests 
+ 2534  more profiles/debian/main.profile 
+ 2535  for file in *.tags ; do check=`basename -s '.tags' $file` ; echo " fields/$check," ; done
+ 2536  mg profiles/debian/main.profile 
+ 2537  git status
+ 2538  git add -u
+ 2539  git commit
+ 2540  t/bin/runtests 
+ 2541  git status
+ 2542  git branch
+ 2543  git checkout dev-tools 
+ 2544  ls dev-tools/
+ 2545  git checkout fields-tests 
+ 2546  emacs t/scripts/harness/tag-coverage.t &
+ 2547  t/bin/runtests 
+ 2548  fgrep fields -r profiles/
+ 2549  emacs t/scripts/harness/tag-coverage.t &
+ 2550  more t/bin/runtests 
+ 2551  emacs t/scripts/harness/tag-coverage.t &
+ 2552  t/bin/runtests 
+ 2553  for tags/m/maintainer-address-malformed.desc 
+ 2554  grep '^Check: fields$ -r tags
+ 2555  grep '^Check: fields$' -r tags/
+ 2556  fgrep maintainer-address-malformed -r lib/
+ 2557  fgrep maintainer-address-malformed -r checks
+ 2558  fgrep maintainer-address -r lib/
+ 2559  fgrep maintainer-address -r checks
+ 2560  fgrep malformed -r checks
+ 2561  fgrep  -r lib/
+ 2562  grep '^Check: fields$' -r tags/
+ 2563  fgrep wrong-debian- -r checks
+ 2564  fgrep wrong-debian- -r lib/
+ 2565  more lib/Lintian/Maintainer.pm 
+ 2566  grep '^Check: fields$' -r tags/
+ 2567  fgrep wrong-debian- -r lib/
+ 2568  git blame lib/Lintian/Maintainer.pm
+ 2569  emacs lib/Lintian/Maintainer.pm &
+ 2570  grep '^Check: fields$' -r tags/
+ 2571  grep '^Check: fields$' -r tags/u/*
+ 2572  for file in tags/u/* ; do sed -i $file "s/^Check\:\ fields/Check\:\ fields\/uploaders/" ; done
+ 2573  for file in tags/u/* ; do sed -i "s/^Check\:\ fields/Check\:\ fields\/uploaders/" $file; done
+ 2574  git status
+ 2575  git diff
+ 2576  git status
+ 2577  git checkout tags/u
+ 2578  for file in tags/u/* ; do sed -i "s/^Check\:\ fields$/Check\:\ fields\/uploaders/" $file; done
+ 2579  git status
+ 2580  git diff
+ 2581  git add -u tags/
+ 2582  git status
+ 2583  git commit
+ 2584  for file in tags/*/* ; do sed -i "s/^Check\:\ fields$/Check\:\ fields\/maintainer/" $file; done
+ 2585  git status
+ 2586  git add -u tags/
+ 2587  git status
+ 2588  git log
+ 2589  git diff
+ 2590  git diff --cached
+ 2591  git commit
+ 2592  git status
+ 2593  git checkout .
+ 2594  t/bin/runtests 
+ 2595  emacs t/scripts/harness/tag-coverage.t &
+ 2596  emacs t/scripts/harness/desc-fields.t &
+ 2597  git status
+ 2598  git diff
+ 2599  git add -u
+ 2600  git commit
+ 2601  man fgrep
+ 2602  fgrep -L 'cperl-indent-level' -r t/scripts/
+ 2603  fgrep -L 'cperl-indent-level' -r t/scripts/harness/
+ 2604  fgrep -L 'cperl-indent-level' -r t/scripts/harness/ > files
+ 2605  emacs `cat files` t/scripts/harness/desc-fields.t &
+ 2606  fgrep -L 'cperl-indent-level' -r t/scripts/
+ 2607  git status
+ 2608  git add -u
+ 2609  git commit
+ 2610  fgrep -L 'cperl-indent-level' -r t/scripts/ > files
+ 2611  emacs `cat files` t/scripts/harness/desc-fields.t &
+ 2612  git status
+ 2613  git log
+ 2614  git add -u
+ 2615  git commit
+ 2616  git status
+ 2617  rm files
+ 2618  fgrep -L 'cperl-indent-level' -r lib > files
+ 2619  more files 
+ 2620  emacs `cat files` t/scripts/harness/desc-fields.t &
+ 2621  git status
+ 2622  git add -u
+ 2623  git commit
+ 2624  fgrep -L 'cperl-indent-level' -r checks
+ 2625  find . -name '.pm' -execdir fgrep -L 'cperl-indent-level' {} \;
+ 2626  find . -name '.pm' -exec fgrep -L 'cperl-indent-level' {} \;
+ 2627  find . -name '*.pm' -exec fgrep -L 'cperl-indent-level' {} \;
+ 2628  find lib -name '*.pm' -exec fgrep -L 'cperl-indent-level' {} \;
+ 2629  find private/ -name '*.pm' -exec fgrep -L 'cperl-indent-level' {} \;
+ 2630  find commands/ -name '*.pm' -exec fgrep -L 'cperl-indent-level' {} \;
+ 2631  find checks -name '*.pm' -exec fgrep -L 'cperl-indent-level' {} \;
+ 2632  find checks -name '*.pm' -exec fgrep -L 'cperl-indent-level' {} \; > files
+ 2633  emacs `cat files` t/scripts/harness/desc-fields.t &
+ 2634  git status
+ 2635  rm files 
+ 2636  git add -u
+ 2637  git commit
+ 2638  git log
+ 2639  git rebase -i HEAD~19
+ 2640  git rebase -i HEAD~15
+ 2641  git status
+ 2642  git log
+ 2643  git show
+ 2644  git show 91e2d8d58baf09c175d950d36fd28c28e3fd29ea
+ 2645  git log
+ 2646  git show d7ce4e17db6886a6120298a354574ef685ad427b
+ 2647  emacs maintainer.tags uploaders.tags &
+ 2648  git show d7ce4e17db6886a6120298a354574ef685ad427b
+ 2649  git show d7ce4e17db6886a6120298a354574ef685ad427b~
+ 2650  git status
+ 2651  git log
+ 2652  git add -u
+ 2653  git commit
+ 2654  git log
+ 2655  git checkout -b editing-aid
+ 2656  git rebase -i HEAD~16
+ 2657  git diff master
+ 2658  t/bin/runtests 
+ 2659  git checkout master
+ 2660  git pull
+ 2661  git merge editing-aid 
+ 2662  git log
+ 2663  git push
+ 2664  git branch -d editing-aid 
+ 2665  git checkout fields-tests 
+ 2666  git log
+ 2667  git status
+ 2668  emacs t/scripts/harness/desc-fields.t &
+ 2669  more tags/d/description-starts-with-leading-spaces.desc 
+ 2670  fgrep description-starts-with-leading-spaces -r checks/fields
+ 2671  fgrep description-starts-with-leading-spaces -r t/tags/checks/
+ 2672  git status
+ 2673  su -
+ 2674  cd /lcl/lechner/lintian/git/
+ 2675  git pull
+ 2676  git checkout -b fields-tests
+ 2677  ls checks/fields
+ 2678  find . -name '*~' -delete
+ 2679  git status
+ 2680  find . -name '*~'
+ 2681  find . -name '*~' -delete
+ 2682  git status
+ 2683  ls checks/fields
+ 2684  more checks/fields/architecture.pm 
+ 2685  for file in checks/fields/*.desc ; do check=`basename -s '.desc' $file`; echo "Check: $check"; done
+ 2686  for file in checks/fields/*.pm ; do check=`basename -s '.pm' $file`; echo "Check: $check"; done
+ 2687  for file in checks/fields/*.pm ; do check=`basename -s '.pm' $file`; for tagfile in tags/*/*.desc ; do tag=`basename -s '.desc' $tagfile` ; if fgrep --quiet $tag $file ; then echo $tag > $check.tags ; fi ; done ; done
+ 2688  git status
+ 2689  more architecture.tags 
+ 2690  more bugs.tags 
+ 2691  git clean -f
+ 2692  for file in checks/fields/*.pm ; do check=`basename -s '.pm' $file`; for tagfile in tags/*/*.desc ; do tag=`basename -s '.desc' $tagfile` ; if fgrep --quiet $tag $file ; then echo $tag >> $check.tags ; fi ; done ; done
+ 2693  more architecture.tags 
+ 2694  more bugs.tags 
+ 2695  more checks/fields/bugs.pm 
+ 2696  git status
+ 2697  ls checks/fields/*.desc
+ 2698  rm description.tags standards-version.tags 
+ 2699  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do sed -i "s/^Check\:\ fields/Check\:\ fields\/$check/" tags/${tag:0:1}/$tag.desc ; done ; done
+ 2700  git status
+ 2701  git diff
+ 2702  git status
+ 2703  git add -u
+ 2704  git commit
+ 2705  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if [ fgrep -quiet $tag $potential && $potential ne $file; then echo "Mismatched tag $tag between $file and $potential"; fi ; done ; done ; done
+ 2706  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if [ fgrep -quiet $tag $potential && $potential ne $file ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; done ; done ; done
+ 2707  man test
+ 2708  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if [ fgrep -quiet $tag $potential -a $potential ne $file ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; done ; done ; done
+ 2709  man test
+ 2710  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if [ fgrep -quiet $tag $potential -a $potential != $file ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; done ; done ; done
+ 2711  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if [ (fgrep -quiet $tag $potential) -a ($potential != $file) ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; done ; done ; done
+ 2712  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if [ $(grep -c $tag $potential) -a ($potential != $file) ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; done ; done ; done
+ 2713  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if [ ($(grep -c $tag $potential) -ne 0) -a ($potential != $file) ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; done ; done ; done
+ 2714  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if fgrep -quiet $tag $potential; then if $potential != $file ; then echo "Mismatched tag $tag between $file and $potential"; fi ; fi ; done ; done ; done
+ 2715  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if fgrep -quiet $tag $potential; then if [ $potential != $file ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; fi ; done ; done ; done
+ 2716  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if fgrep -quiet $tag $potential; then if [ $potential -ne $file ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; fi ; done ; done ; done
+ 2717  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if fgrep -quiet $tag $potential; then if [ $potential != $file ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; fi ; done ; done ; done
+ 2718  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if fgrep $tag $potential; then if [ $potential != $file ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; fi ; done ; done ; done
+ 2719  for file in *.tags ; do check=`basename -s '.tags' $file` ; for tag in `cat $file`; do for potential in *.tags ; do if fgrep --quiet $tag $potential; then if [ $potential != $file ] ; then echo "Mismatched tag $tag between $file and $potential"; fi ; fi ; done ; done ; done
+ 2720  for file in *.tags ; do check=`basename -s '.tags' $file` ; mkdir t/tags/checks/fields/$check; done
+ 2721  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; testdir=`dirname $desc`; echo "Testdir: $testdir" ; done ; done
+ 2722  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; echo "Testdir: $testdir" ; done ; done
+ 2723  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basedir $testdir` ; echo "Test: $testname" ; done ; done
+ 2724  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; echo "Test: $testname" ; done ; done
+ 2725  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; mkdir t/tags/check/$check/$testname ; done ; done
+ 2726  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; mkdir t/tags/check/fields/$check/$testname ; done ; done
+ 2727  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; mkdir t/tags/checks/fields/$check/$testname ; done ; done
+ 2728  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; cp -r $testdir/. t/tags/checks/fields/$check/$testname ; done ; done
+ 2729  git status
+ 2730  rm -rf debian/test-out/
+ 2731  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; rm -rf $testdir ; done ; done
+ 2732  git status
+ 2733  ls t/tags/checks/fields/
+ 2734  git checkout t/tags/checks/fields/
+ 2735  git status
+ 2736  git add *.tags
+ 2737  git commit
+ 2738  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; mkdir t/tags/checks/fields/$check/$testname ; done ; done
+ 2739  history | more
+ 2740  history | fgrep mkdir
+ 2741  for file in *.tags ; do check=`basename -s '.tags' $file` ; mkdir t/tags/checks/fields/$check; done
+ 2742  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; mkdir t/tags/checks/fields/$check/$testname ; done ; done
+ 2743  git status
+ 2744  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; testname=`basename $testdir` ; cp -r $testdir/. t/tags/checks/fields/$check/$testname ; done ; done
+ 2745  git status
+ 2746  ls t/tags/checks/fields/architecture/
+ 2747  git status
+ 2748  git add -u
+ 2749  git add .
+ 2750  git commit
+ 2751  or file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/$check/*/desc; do sed -i "s/^Check\:\ fields/Check\:\ fields\/$check/" $desc ; done ; done
+ 2752  for file in *.tags ; do check=`basename -s '.tags' $file` ; for desc in t/tags/checks/fields/$check/*/desc; do sed -i "s/^Check\:\ fields/Check\:\ fields\/$check/" $desc ; done ; done
+ 2753  git status
+ 2754  git diff
+ 2755  git status
+ 2756  git commit
+ 2757  git add -u
+ 2758  git commit
+ 2759  for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; echo "Testdir: $testdir" ; done
+ 2760  for desc in t/tags/checks/fields/*/desc; do testdir=`dirname $desc`; rm -rf $testdir ; done
+ 2761  git status
+ 2762  git status | more
+ 2763  git add -u
+ 2764  git commit
+ 2765  rm -rf debian/test-out/
+ 2766  t/bin/build-test-packages
+ 2767  t/bin/runtests 
+ 2768  git add -u t/tags/checks/
+ 2769  git commit
+ 2770  git status
+ 2771  cp debian/test-out/tags/lintian-features/lintian-display-level/literal.actual t/tags/lintian-features/lintian-display-level/literal 
+ 2772  cp debian/test-out/tags/lintian-features/lintian-output-fullewi/literal.actual t/tags/lintian-features/lintian-output-fullewi/literal 
+ 2773  cp debian/test-out/tags/lintian-features/lintian-output-xml/literal.actual t/tags/lintian-features/lintian-output-xml/literal 
+ 2774  cp debian/test-out/tags/lintian-features/lintian-output-colons/literal.actual t/tags/lintian-features/lintian-output-colons/literal 
+ 2775  cp debian/test-out/tags/lintian-features/lintian-output-letter/literal.actual t/tags/lintian-features/lintian-output-letter/literal 
+ 2776  git status
+ 2777  git diff
+ 2778  git log
+ 2779  git add -u t/tags/
+ 2780  git sttus
+ 2781  git status
+ 2782  git commit
+ 2783  git log
+ 2784  git rebase -i HEAD~16
+ 2785  git status
+ 2786  git diff
+ 2787  find t/tags/ -name desc > descs
+ 2788  more descs 
+ 2789  for desc in `cat desc` ; do echo `dirname $desc` ; done
+ 2790  for desc in `cat descs` ; do echo `dirname $desc` ; done
+ 2791  find t/tags/checks/fields/ -name desc > descs
+ 2792  for desc in `cat descs` ; do echo `dirname $desc` ; done > tests
+ 2793  more tests 
+ 2794  for test in `cat tests` ; do if [ `wc -c $tests/tags` < 5 ] ; then echo $test ; fi ; done
+ 2795  for test in `cat tests` ; do if [ `wc -c $test/tags` < 5 ] ; then echo $test ; fi ; done
+ 2796  for test in `cat tests` ; do if [ `wc -c $test/tags` -lt 5 ] ; then echo $test ; fi ; done
+ 2797  man test
+ 2798  for test in `cat tests` ; do if [ `wc -c $test/tags` -lt 5 ] ; then echo $test ; fi ; done
+ 2799  for test in `cat tests` ; do wc -c $test/tags ; done
+ 2800  man wc
+ 2801  for test in `cat tests` ; do if [ `wc -c $test/tags | awk '{print $1}'` -lt 5 ] ; then echo $test ; fi ; done
+ 2802  for test in `cat tests` ; do if [ `wc -c $test/tags | awk '{print $1}'` -lt 5 ] ; then echo $test ; fi ; done > lt5
+ 2803  for test in `cat tests` ; do if [ `wc -c $test/tags | awk '{print $1}'` -eq 0 ] ; then echo $test ; fi ; done > zero
+ 2804  wc -l lt5 
+ 2805  wc -l zero 
+ 2806  rm zero 
+ 2807  for test in `cat tests` ; do if [ `wc -c $test/tags | awk '{print $1}'` -le 1 ] ; then echo $test ; fi ; done > le1
+ 2808  wc -l le1 
+ 2809  rm le1 
+ 2810  mv lt5 notags
+ 2811  git status
+ 2812  for test in `cat tests` ; do if fgrep --quiet 'Test-Against:' $test/desc ; then echo $test ; fi ; done > notestagainst
+ 2813  wc -l notestagainst 
+ 2814  for test in `cat tests` ; do if fgrep --quiet -v 'Test-Against:' $test/desc ; then echo $test ; fi ; done > notestagainst
+ 2815  wc -l notestagainst 
+ 2816  for test in `cat notags` ; do if fgrep --quiet "test" notestagainst ; then echo $test ; fi ; done
+ 2817  for test in `cat notags` ; do if fgrep --quiet "$test" notestagainst ; then echo $test ; fi ; done
+ 2818  for test in `cat notags` ; do if fgrep --quiet "$test" notestagainst ; then echo $test ; fi ; done > neither
+ 2819  wc -l neither 
+ 2820  git status
+ 2821  wc -l notags 
+ 2822  for test in `cat notags` ; do if fgrep --quiet 'Test-Against:' $test/desc ; then echo $test ; fi ; done
+ 2823  wc -l tests 
+ 2824  for test in `cat notags` ; do if fgrep --quiet 'Test-Against:' $test/desc ; then echo $test ; fi ; done > ta
+ 2825  wc -l ta
+ 2826  for test in `cat notags` ; do if fgrep --quiet -v 'Test-Against:' $test/desc ; then echo $test ; fi ; done
+ 2827  for test in `cat notags` ; do if fgrep --quiet -v 'Test-Against:' $test/desc ; then echo $test ; fi ; done > nta
+ 2828  wc -l nta 
+ 2829  man fgrep
+ 2830  for test in `cat notags` ; do if fgrep --quiet -L 'Test-Against:' $test/desc ; then echo $test ; fi ; done > nta
+ 2831  wc -l nta 
+ 2832  man fgrep
+ 2833  git status
+ 2834  rm ta nta notestagainst 
+ 2835  rm neither 
+ 2836  git checkout t/scripts/harness/desc-fields.t
+ 2837  emacs t/scripts/harness/desc-fields.t &
+ 2838  t/bin/runtests 
+ 2839  git status
+ 2840  git diff
+ 2841  t/bin/runtests 
+ 2842  git status
+ 2843  git diff
+ 2844  git checkout t/tags/
+ 2845  git status
+ 2846  t/bin/runtests 
+ 2847  git status
+ 2848  git diff
+ 2849  git checkout t/tags/
+ 2850  t/bin/runtests 
+ 2851  git diff
+ 2852  t/bin/runtests 
+ 2853  git diff
+ 2854  git status
+ 2855  git diff
+ 2856  git checkout t/tags/
+ 2857  t/bin/runtests 
+ 2858  git add -u t/tags/
+ 2859  git status
+ 2860  git diff --cached
+ 2861  git commit
+ 2862  git status
+ 2863  git stash
+ 2864  git status
+ 2865  t/bin/runtests 
+ 2866  git stash apply
+ 2867  t/bin/runtests 
+ 2868  git status
+ 2869  more notags 
+ 2870  git status
+ 2871  git stash
+ 2872  for test in `cat notags` ; do if fgrep --quiet -v 'Test-Against:' $test/desc ; then echo $test ; fi ; done
+ 2873  for test in `cat notags` ; do if fgrep --quiet -v 'Test-Against:' $test/desc ; then echo $test ; fi ; done > neither
+ 2874  wc -l neither 
+ 2875  wc -l notags 
+ 2876  more notags 
+ 2877  more t/tags/checks/fields/description/description-synopsis-spaces/tags 
+ 2878  more t/tags/checks/fields/description/description-synopsis-spaces/desc 
+ 2879  git diff master -- t/tags/checks/fields/description/description-synopsis-spaces/desc 
+ 2880  more notags 
+ 2881  more t/tags/checks/fields/description/spelling-package-name/desc 
+ 2882  mg t/tags/checks/fields/description/description-synopsis-spaces/desc 
+ 2883  more checks/fields/description.pm 
+ 2884  more t/tags/checks/fields/description/description-synopsis-spaces/desc 
+ 2885  more t/tags/checks/fields/description/description-synopsis-spaces/tags 
+ 2886  more t/tags/checks/fields/description/description-synopsis-spaces/DEBIAN/control.in 
+ 2887  more t/tags/checks/fields/version/fields-version-dsfg/tags 
+ 2888  more t/tags/checks/fields/version/fields-version-dot-dfsg/tags 
+ 2889  wc -l tests 
+ 2890  for test in `cat tests` ; do if fgrep --quiet 'Test-Against:' $test/desc ; then echo $test ; fi ; done > ta
+ 2891  wc -l ta
+ 2892  git log
+ 2893  git show
+ 2894  git status
+ 2895  rm ta
+ 2896  fgrep -- -fp tests 
+ 2897  more t/tags/checks/fields/multi-arch/fields-orphaned-package-not-maintained-in-debian-infrastructure-fp
+ 2898  more t/tags/checks/fields/multi-arch/fields-orphaned-package-not-maintained-in-debian-infrastructure-fp/desc 
+ 2899  git diff HEAD~10 -- t/tags/checks/fields/multi-arch/fields-orphaned-package-not-maintained-in-debian-infrastructure-fp/desc 
+ 2900  git diff HEAD~1 -- t/tags/checks/fields/multi-arch/fields-orphaned-package-not-maintained-in-debian-infrastructure-fp/desc 
+ 2901  more tags/o/orphaned-package-not-maintained-in-debian-infrastructure.desc 
+ 2902  more t/tags/checks/fields/vcs/fields-orphaned-package-not-maintained-in-debian-infrastructure-fp/desc 
+ 2903  more t/tags/checks/fields/vcs/fields-orphaned-package-not-maintained-in-debian-infrastructure-fp/tags 
+ 2904  fgrep t/tags/checks/fields/vcs/fields-orphaned-package-not-maintained-in-debian-infrastructure-fp notags 
+ 2905  wc -l notags 
+ 2906  mg notags 
+ 2907  more t/tags/checks/fields/standards-version/standards-version-timewarp-unrel/tags 
+ 2908  more t/tags/checks/fields/standards-version/standards-version-timewarp-unrel/desc 
+ 2909  for test in `cat tests` ; do if fgrep --quiet -L 'Test-Against:' $test/desc ; then echo $test ; fi ; done > nta
+ 2910  wc -l nta 
+ 2911  man fgrep
+ 2912  for test in `cat tests` ; do if fgrep --quiet -l 'Test-Against:' $test/desc ; then echo $test ; fi ; done > nta
+ 2913  wc -l nta 
+ 2914  for test in `cat tests` ; do if fgrep --quiet -l 'Test-Against:' $test/desc ; then echo $test ; fi ; done
+ 2915  for test in `cat tests` ; do if fgrep --quiet -L 'Test-Against:' $test/desc ; then echo $test ; fi ; done
+ 2916  man fgrep
+ 2917  for test in `cat notags` ; do if fgrep --quiet 'Test-Against:' $test/desc ; then echo $test ; fi ; done
+ 2918  for test in `cat notags` ; do if ! fgrep --quiet 'Test-Against:' $test/desc ; then echo $test ; fi ; done > nta
+ 2919  wc -l nta
+ 2920  for test in `cat notags` ; do if fgrep --quiet 'Test-Against:' $test/desc ; then echo $test ; fi ; done > ta
+ 2921  wc -l ta
+ 2922  wc -l notags
+ 2923  wc -l tests 
+ 2924  git status
+ 2925  wc -l nta
+ 2926  for test in `cat nta` ; do rm -rf $test ; done
+ 2927  git status
+ 2928  git add -u t/tags/
+ 2929  git status
+ 2930  git commit
+ 2931  find t/tags/checks/fields/ -name desc | wc -l
+ 2932  rm -rf debian/test-out/
+ 2933  t/bin/build-test-packages
+ 2934  t/bin/runtests 
+ 2935  git status
+ 2936  git clean -f
+ 2937  git checkout master
+ 2938  git pull
+ 2939  find t/tags/checks/fields/ -name desc > descs
+ 2940  for desc in `cat descs` ; do echo `dirname $desc` ; done > tests
+ 2941  for test in `cat tests` ; do if [ `wc -c $test/tags | awk '{print $1}'` -lt 5 ] ; then echo $test ; fi ; done > lt5
+ 2942  more lt5 
+ 2943  mv lt5 notags
+ 2944  for test in `cat notags` ; do if ! fgrep --quiet 'Test-Against:' $test/desc ; then echo $test ; fi ; done > nta
+ 2945  more nta 
+ 2946  more t/tags/checks/fields/fields-depends-wildcard/desc 
+ 2947  more t/tags/checks/fields/fields-depends-wildcard/tags 
+ 2948  more t/tags/checks/fields/fields-depends-wildcard/debian/control.in 
+ 2949  more checks/fields/package-relations.pm 
+ 2950  more t/tags/checks/fields/fields-depends-wildcard/debian/control.in 
+ 2951  more checks/fields/package-relations.pm 
+ 2952  git checkout fields-tests 
+ 2953  find t/tags/checks/fields/ -name '*depends*'
+ 2954  git checkout master
+ 2955  git checkout fields-tests 
+ 2956  git checkout master -- t/tags/checks/fields/fields-depends-wildcard
+ 2957  git status
+ 2958  git mv t/tags/checks/fields/fields-depends-wildcard t/tags/checks/fields/package-relations/fields-depends-wildcard
+ 2959  git status
+ 2960  emacs checks/fields/package-relations.pm &
+ 2961  mg t/tags/checks/fields/package-relations/fields-depends-wildcard/desc 
+ 2962  git status
+ 2963  git add -u t/tags/
+ 2964  git status
+ 2965  git commit
+ 2966  git status
+ 2967  git clean -f
+ 2968  git log
+ 2969  git rebase -i HEAD~19
+ 2970  git log
+ 2971  git rebase -i HEAD~8
+ 2972  git rebase -i HEAD~6
+ 2973  git log
+ 2974  rm -rf debian/test-out/
+ 2975  t/bin/build-test-packages; t/bin/runtests 
+ 2976  mg t/tags/checks/fields/package-relations/fields-depends-wildcard/desc
+ 2977  git status
+ 2978  git add -u
+ 2979  git commit
+ 2980  rm -rf debian/test-out/
+ 2981  mg t/tags/checks/fields/package-relations/fields-depends-wildcard/desc
+ 2982  t/bin/runtests 
+ 2983  git rebase -i HEAD~6
+ 2984  rm -rf debian/test-out/
+ 2985  t/bin/build-test-packages; t/bin/runtests 
+ 2986  git log
+ 2987  git branch
+ 2988  git checkout master
+ 2989  git pull
+ 2990  git merge fields-tests 
+ 2991  git log
+ 2992  git push
+ 2993  git branch -d fields-tests 
+ 2994  git branch
+ 2995  git checkout split-files 
+ 2996  git rebase master
+ 2997  git branch
+ 2998  ls checks/fields
+ 2999  nautilus
+ 3000  more t/tags/checks/fields/description/description-perl/desc 
+ 3001  more t/tags/checks/fields/description/description-perl/debian/control.in 
+ 3002  more debian/test-out/tags/checks/fields/description/description-perl/description-perl-1.0/debian/control 
+ 3003  git status
+ 3004  git checkout .
+ 3005  mg t/tags/checks/fields/description/description-synopsis-spaces/desc
+ 3006  mg checks/fields/description.pm 
+ 3007  rm -rf debian/test-out/
+ 3008  t/bin/build-test-packages; t/bin/runtests 
+ 3009  git status
+ 3010  git diff
+ 3011  t/bin/runtests 
+ 3012  git status
+ 3013  git diff
+ 3014  git add -u
+ 3015  git commit
+ 3016  git status
+ 3017  t/bin/runtests 
+ 3018  more t/defaults/
+ 3019  more t/defaults/desc 
+ 3020  git branch
+ 3021  git checkout faster-tests 
+ 3022  git status
+ 3023  git reset
+ 3024  git status
+ 3025  git checkout .
+ 3026  git checkout faster-tests 
+ 3027  git status
+ 3028  git log
+ 3029  git show bdd3511d6752c6bb461402394fb11b0400967fc1
+ 3030  git show bdd3511d6752c6bb461402394fb11b0400967fc1~1
+ 3031  history | more
+ 3032  history > some-more-commands
