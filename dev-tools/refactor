@@ -1,0 +1,64 @@
+#!/usr/bin/perl
+
+use strictures 1;
+use PPIx::Refactor;
+use Path::Tiny;
+use Safe::Isa;
+
+my $finder = sub {
+        my ($element, $doc) = @_;
+        return 1
+          if $element eq 'tag'
+          && $element->sprevious_sibling ne '->';
+
+        return 0;
+};
+
+my $writer = sub {
+      my ($finds) = @_;
+
+      for my $element (@{$finds}) {
+        $element->set_content('$self->tag(');
+
+        my $next = $element;
+        while (($next = $next->snext_sibling)) {
+          if ($next eq ';' || $next eq 'if' || $next eq 'unless') {
+            $next->set_content(") $next");
+            last;
+          }
+        }
+      }
+
+      return ;
+};
+
+my %index;
+my $itr = path('checks')->iterator({recurse => 1});
+while (my $path = $itr->()) {
+  next unless $path =~ /\.pm$/;
+#  next if $path =~ /$some_module_im_not_interested_in\.pm$/;
+  my $p = PPIx::Refactor->new(file => $path, ppi_find => $finder, writer => $writer);
+  my $finds = $p->finds;
+
+  $p->rewrite;
+}
+
+exit;
+
+
+  # for my $element (@{$finds}) {
+
+  #   print '$self->tag(';
+
+  #   my $next = $element;
+  #   while (($next = $next->snext_sibling)) {
+  #     if ($next eq ';' || $next eq 'if' || $next eq 'unless') {
+  #       last;
+  #     } else {
+  #       print ' ' . $next;
+  #     }
+  #   }
+
+  #   print ");\n";
+  # }
+
