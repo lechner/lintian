@@ -26,8 +26,6 @@ use autodie;
 
 use Moo;
 
-use Lintian::Tags qw(tag);
-
 with('Lintian::Check');
 
 sub binary {
@@ -41,9 +39,9 @@ sub binary {
         next if $file1->is_dir and $file2->is_dir;
 
         if ($file1 =~ m,^lib.+\.(?:so[\.0-9]*|a)$,) {
-            tag 'library-in-root-and-usr', $file1, $file2;
+            $self->tag('library-in-root-and-usr', $file1, $file2);
         } else {
-            tag 'file-in-root-and-usr', $file1, $file2;
+            $self->tag('file-in-root-and-usr', $file1, $file2);
         }
     }
 

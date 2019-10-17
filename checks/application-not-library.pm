@@ -26,8 +26,6 @@ use warnings;
 use List::MoreUtils qw(any);
 use Moo;
 
-use Lintian::Tags qw(tag);
-
 with('Lintian::Check');
 
 sub binary {
@@ -82,16 +80,16 @@ sub binary {
     # Check for library style package names
     if ($pkg =~ /^lib(?:.+)-perl$|^ruby-|^python[\d.]*-/) {
         if ($pkg =~ /^libapp(?:.+)-perl$/) {
-            tag 'libapp-perl-package-name', @programs;
+            $self->tag('libapp-perl-package-name', @programs);
         } else {
-            tag 'library-package-name-for-application', @programs;
+            $self->tag('library-package-name-for-application', @programs);
         }
     }
 
     # Check for wrong section
     my $section = $info->field('section', '');
     if ($section =~ /perl|python|ruby|(?:^|\/)libs/) { # oldlibs is ok
-        tag 'application-in-library-section', "$section", @programs;
+        $self->tag('application-in-library-section', "$section", @programs);
     }
 
     return;
